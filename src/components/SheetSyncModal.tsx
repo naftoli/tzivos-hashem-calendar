@@ -37,6 +37,13 @@ export const SheetSyncModal: React.FC<SheetSyncModalProps> = ({
   const [customUrl, setCustomUrl] = useState(currentSheetUrl || DEFAULT_PUBLISHED_SHEET_CSV_URL);
   const [feedback, setFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
+  React.useEffect(() => {
+    if (isOpen) {
+      setCustomUrl(currentSheetUrl || DEFAULT_PUBLISHED_SHEET_CSV_URL);
+      setFeedback(null);
+    }
+  }, [isOpen, currentSheetUrl]);
+
   if (!isOpen) return null;
 
   const formatTime = (isoString: string | null) => {
@@ -165,7 +172,7 @@ export const SheetSyncModal: React.FC<SheetSyncModalProps> = ({
             </div>
             <input
               type="text"
-              value={customUrl}
+              value={customUrl ?? ''}
               onChange={(e) => setCustomUrl(e.target.value)}
               placeholder="https://docs.google.com/spreadsheets/d/.../pub?output=csv"
               className="w-full px-3 py-2 bg-[#f5f9fe] border border-[#c8d8ee] rounded-xl text-xs text-[#15265c] font-mono placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#15265c]"

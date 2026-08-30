@@ -34,14 +34,15 @@ export interface FlatCalendarRecord {
 export function flattenCalendarEvents(
   days: CalendarDay[],
   selectedCategories: Record<CalendarCategory, boolean>,
-  searchQuery: string = ''
+  searchQuery: string = '',
+  selectedSubCategories?: Record<string, boolean>
 ): FlatCalendarRecord[] {
   const records: FlatCalendarRecord[] = [];
   const query = searchQuery.trim().toLowerCase();
 
   for (const day of days) {
     for (const ev of day.events) {
-      if (!isEventVisibleByCategories(ev, selectedCategories)) continue;
+      if (!isEventVisibleByCategories(ev, selectedCategories, selectedSubCategories)) continue;
 
       if (query) {
         const matches =

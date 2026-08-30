@@ -28,6 +28,7 @@ interface AgendaViewProps {
   days: CalendarDay[];
   calendarSystem: CalendarSystem;
   selectedCategories: Record<CalendarCategory, boolean>;
+  selectedSubCategories?: Record<string, boolean>;
   searchQuery: string;
   onSelectDay: (day: CalendarDay) => void;
   todayIso: string;
@@ -42,6 +43,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
   days,
   calendarSystem,
   selectedCategories,
+  selectedSubCategories,
   searchQuery,
   onSelectDay,
   todayIso,
@@ -60,10 +62,10 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
     }
   };
 
-  // Group days by Month
+  // Group days by Month (Respects both Category & Subcategory/Book filters)
   const flatEvents = React.useMemo(() => {
-    return flattenCalendarEvents(days, selectedCategories, searchQuery);
-  }, [days, selectedCategories, searchQuery]);
+    return flattenCalendarEvents(days, selectedCategories, searchQuery, selectedSubCategories);
+  }, [days, selectedCategories, searchQuery, selectedSubCategories]);
 
   // Group flat events by Month string (Hebrew or Gregorian)
   const groupedByMonth = React.useMemo(() => {
@@ -234,7 +236,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                             />
                             <ChidonIcon
                               size={12}
-                              color="#d97706"
+                              color={'#b48a18'}
                               className="shrink-0"
                             />
                           </>
@@ -306,8 +308,6 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
                         )}
                         {ev.subCategory}
                       </span>
-
-                 
 
                       {ev.time && (
                         <span className="inline-flex items-center gap-1 text-[10px] font-medium text-violet-900 bg-violet-100 px-1.5 py-0.5 rounded border border-violet-200">

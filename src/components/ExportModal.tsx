@@ -178,7 +178,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 <input
                   type="radio"
                   name="daterange"
-                  checked={dateRange === 'all'}
+                  checked={Boolean(dateRange === 'all')}
                   onChange={() => setDateRange('all')}
                   className="text-[#15265c] focus:ring-[#15265c]"
                 />
@@ -189,7 +189,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 <input
                   type="radio"
                   name="daterange"
-                  checked={dateRange === 'current_month'}
+                  checked={Boolean(dateRange === 'current_month')}
                   onChange={() => setDateRange('current_month')}
                   className="text-[#15265c] focus:ring-[#15265c]"
                 />
@@ -227,7 +227,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 p-2 bg-[#e1ecfa] rounded-xl border border-[#c8d8ee]">
               {CATEGORY_KEYS.map((catKey) => {
                 const cat = CATEGORIES[catKey];
-                const isSelected = selectedCats[catKey];
+                const isSelected = !!selectedCats[catKey];
 
                 return (
                   <label
@@ -238,7 +238,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   >
                     <input
                       type="checkbox"
-                      checked={isSelected}
+                      checked={Boolean(isSelected)}
                       onChange={() => handleToggleCat(catKey)}
                       className="w-3.5 h-3.5 rounded-sm border-[#c8d8ee] text-[#15265c] focus:ring-[#15265c]"
                     />

@@ -26,11 +26,11 @@ import { TorahIcon } from './TorahIcon';
 import { CpIcon } from './CpIcon';
 import { PromotionCeremonyIcon } from './PromotionCeremonyIcon';
 
-
 interface TableViewProps {
   days: CalendarDay[];
   calendarSystem: CalendarSystem;
   selectedCategories: Record<CalendarCategory, boolean>;
+  selectedSubCategories?: Record<string, boolean>;
   searchQuery: string;
   onSelectDay: (day: CalendarDay) => void;
   todayIso: string;
@@ -40,6 +40,7 @@ export const TableView: React.FC<TableViewProps> = ({
   days,
   calendarSystem,
   selectedCategories,
+  selectedSubCategories,
   searchQuery,
   onSelectDay,
   todayIso,
@@ -52,7 +53,7 @@ export const TableView: React.FC<TableViewProps> = ({
   const pageSize = 25;
 
   const flatEvents = React.useMemo(() => {
-    let list = flattenCalendarEvents(days, selectedCategories, searchQuery);
+    let list = flattenCalendarEvents(days, selectedCategories, searchQuery, selectedSubCategories);
 
     if (selectedMonthFilter !== 'ALL') {
       if (isHebrew) {
@@ -79,7 +80,7 @@ export const TableView: React.FC<TableViewProps> = ({
     });
 
     return list;
-  }, [days, selectedCategories, searchQuery, sortField, sortAsc, selectedMonthFilter, isHebrew]);
+  }, [days, selectedCategories, searchQuery, selectedSubCategories, sortField, sortAsc, selectedMonthFilter, isHebrew]);
 
   // Jump to today's page in table
   const handleGoToToday = () => {
@@ -357,6 +358,16 @@ export const TableView: React.FC<TableViewProps> = ({
                                   size={16}
                                   className="shrink-0"
                                 />
+                              ) : ev.category === 'cp' ? (
+                                <CpIcon
+                                  size={16}
+                                  className="shrink-0 -my-1 -mx-0.5"
+                                />
+                              ) : ev.category === 'promotion_ceremony' ? (
+                                <PromotionCeremonyIcon
+                                  size={16}
+                                  className="shrink-0 -my-1 -mx-0.5"
+                                />
                               ) : (
                                 <span
                                   className="w-1.5 h-1.5 rounded-full"
@@ -380,11 +391,6 @@ export const TableView: React.FC<TableViewProps> = ({
                       {ev.shadingLevel && (
                         <span className="inline-block mt-0.5 text-[9px] bg-[#e1ecfa] text-[#15265c] px-1.5 py-0.2 rounded font-semibold border border-[#c8d8ee]">
                           {ev.shadingLevel}
-                        </span>
-                      )}
-                      {ev.isGlobal && (
-                        <span className="inline-block ml-1 mt-0.5 text-[9px] bg-rose-100 text-rose-800 border border-rose-200 px-1.5 py-0.2 rounded font-bold">
-                          Global
                         </span>
                       )}
                     </td>

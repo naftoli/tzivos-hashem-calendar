@@ -1,5 +1,56 @@
 import { CalendarCategory, CategoryInfo, CalendarEvent } from '../types';
 
+// Map each major category to its distinct subcategories
+export const CATEGORY_SUBCATEGORIES: Record<CalendarCategory, string[]> = {
+  chidon: ['KHK Tests', 'Shipping and Orders', 'Registration & Enrollment', 'Trips & Events', 'Limmud & Tests', 'CC Meetings', 'Limmud Schedule'],
+  hachayol_battlefront: ['Hachayol Magazines', 'Battlefront Report'],
+  raffle_5m: ['5M Raffle Mission Start', '5M Raffle Mission End', '5M Winners Announced'],
+  raffle_60m: ['60M Raffle Starts', '60M Raffle Ends'],
+  niggunim: ['Niggun of the Week'],
+  yomei_depagra: ['Yomei Depagra'],
+  shabbos_mevorchim: ['Shabbos Mevorchim', 'Shabbos Mevorchim Data Due'],
+  meetings: ['BC Meetings', 'CC Meetings'],
+  rallies: ['Rallies', 'Global Rallies'],
+  cp: ['Senior (5-8)', 'Foundations/Junior'],
+  promotion_ceremony: ['Promotion Ceremonies'],
+  contests_sales: ['Contests', 'Sales']
+};
+
+// Default state: 'Limmud Schedule' is ON by default, Book 1-5 toggles are OFF by default
+export const DEFAULT_SUBCATEGORIES_STATE: Record<string, boolean> = {
+  'Limmud Schedule': true, // Side-by-side module visible by default
+  'Book 1': false,         // Individual book cards hidden from main views by default
+  'Book 2': false,
+  'Book 3': false,
+  'Book 4': false,
+  'Book 5': false,
+  'Chidon Test': true,
+  'Chidon Meeting': true,
+  'Chidon Review': true,
+  'Hachayol Issue': true,
+  'Battlefront Report': true,
+  'Mission Review': true,
+  '5M Drawing': true,
+  '5M Deadline': true,
+  '5M Winners': true,
+  '60M Drawing': true,
+  '60M Deadline': true,
+  'Niggun Review': true,
+  'Niggun Audio Release': true,
+  'Farbrengen': true,
+  'Special Limmud': true,
+  'Shabbos Mevorchim': true,
+  'Tehillim Deadline': true,
+  'Base Commander Meeting': true,
+  'City Commander Meeting': true,
+  'Global Rally Broadcast': true,
+  'Local Rally': true,
+  'CP Rally': true,
+  'CP Assignment': true,
+  'Rank Advancement': true,
+  'Ceremony Stream': true,
+};
+
 export const CATEGORIES: Record<CalendarCategory, CategoryInfo> = {
   chidon: {
     id: 'chidon',
@@ -7,16 +58,17 @@ export const CATEGORIES: Record<CalendarCategory, CategoryInfo> = {
     hebrewName: 'חידון המצוות',
     description: 'KHK Program, Shipments, Registration, Curriculum Tests, Trips, and CC Meetings',
     color: '#b48a18', // Gold
-    bgColor: 'bg-amber-50',
+    bgColor: 'bg-[#faf6e8]',
     borderColor: 'border-amber-300',
     textColor: 'text-amber-950',
     subCategories: [
-      'KHK Program & Tests',
-      'Shipments & Materials',
+      'KHK Tests',
+      'Shipping and Orders',
       'Registration & Enrollment',
-      'Trips & Special Events',
-      'Chidon Tests & Curriculum',
-      'Chidon Coordinator Meeting',
+      'Trips & Events',
+      'Limmud & Tests',
+      'CC Meetings',
+      'Limmud Schedule',
     ],
   },
   hachayol_battlefront: {
@@ -28,18 +80,18 @@ export const CATEGORIES: Record<CalendarCategory, CategoryInfo> = {
     bgColor: 'bg-teal-50',
     borderColor: 'border-teal-300',
     textColor: 'text-teal-950',
-    subCategories: ['Hachayol Issue', 'Battlefront Report'],
+    subCategories: ['Hachayol Magazine', 'Battlefront Report'],
   },
   rallies: {
     id: 'rallies',
-    name: 'Rallies & Global Rallies',
+    name: 'Tzivos Hashem Rallies',
     hebrewName: 'ראלי צבאות ה׳',
     description: 'Tzivos Hashem Live Rallies and Global Broadcasts',
     color: '#e11d48', // Rose
     bgColor: 'bg-rose-50',
     borderColor: 'border-rose-300',
     textColor: 'text-rose-950',
-    subCategories: ['Rally', 'Global Rally'],
+    subCategories: ['Rallies', 'Global Rallies'],
   },
   meetings: {
     id: 'meetings',
@@ -65,8 +117,8 @@ export const CATEGORIES: Record<CalendarCategory, CategoryInfo> = {
   },
   yomei_depagra: {
     id: 'yomei_depagra',
-    name: 'Yomei Depagra & Chassidishe Dates',
-    hebrewName: 'יומי דפגרא וחב״ד',
+    name: 'Yomei Depagra',
+    hebrewName: 'יומי דפגרא',
     description: 'Chabad Chassidishe anniversaries, Yomim Tovim, and special dates',
     color: '#b45309', // Warm Ochre
     bgColor: 'bg-amber-100/70',
@@ -100,17 +152,17 @@ export const CATEGORIES: Record<CalendarCategory, CategoryInfo> = {
       '5M Winners Announced',
     ],
   },
-raffle_60m: {
-  id: 'raffle_60m',
-  name: '60M Grand Raffles',
-  hebrewName: 'הגרלות ענק 60M',
-  description: 'Quarterly 3-month cycle grand raffles (Starts & Ends)',
-  color: '#f59e0b', // Warm Sunny Yellow
-  bgColor: 'bg-yellow-200/80',
-  borderColor: 'border-yellow-500',
-  textColor: 'text-yellow-950',
-  subCategories: ['60M Raffle Starts', '60M Raffle Ends'],
-},
+  raffle_60m: {
+    id: 'raffle_60m',
+    name: '60M Grand Raffles',
+    hebrewName: 'הגרלות ענק 60M',
+    description: 'Quarterly 3-month cycle grand raffles (Starts & Ends)',
+    color: '#f59e0b', // Warm Sunny Yellow
+    bgColor: 'bg-yellow-200/80',
+    borderColor: 'border-yellow-500',
+    textColor: 'text-yellow-950',
+    subCategories: ['60M Raffle Starts', '60M Raffle Ends'],
+  },
   shabbos_mevorchim: {
     id: 'shabbos_mevorchim',
     name: 'Shabbos Mevorchim & Data Due',
@@ -125,13 +177,24 @@ raffle_60m: {
   cp: {
     id: 'cp',
     name: 'Connection Point',
-    hebrewName: 'תכנית Connection Point',
+    hebrewName: 'Connection Point',
     description: 'Senior (5-8) Lessons & Rallies, and Foundations / Junior Episodes',
     color: '#c026d3', // Fuchsia
     bgColor: 'bg-fuchsia-50',
     borderColor: 'border-fuchsia-300',
     textColor: 'text-fuchsia-950',
     subCategories: ['Senior (5-8)', 'Foundations/Junior'],
+  },
+  contests_sales: {
+    id: 'contests_sales',
+    name: 'Contests & Sales',
+    hebrewName: 'Contests & Sales',
+    description: 'Campaign contests, competitions, sales, and special offers',
+    color: '#059669', // Emerald
+    bgColor: 'bg-emerald-50',
+    borderColor: 'border-emerald-300',
+    textColor: 'text-emerald-950',
+    subCategories: ['Contests', 'Sales'],
   },
 };
 
@@ -149,6 +212,7 @@ export const DEFAULT_SELECTED_CATEGORIES: Record<CalendarCategory, boolean> = {
   raffle_60m: true,
   shabbos_mevorchim: true,
   cp: true,
+  contests_sales: true,
 };
 
 /**
@@ -172,20 +236,48 @@ export function isCCMeeting(ev: CalendarEvent): boolean {
   );
 }
 
-/**
- * Determines whether an event should be visible given the current category filters.
- * For CC meetings, visible if EITHER 'meetings' OR 'chidon' is selected.
- */
-export function isEventVisibleByCategories(
-  ev: CalendarEvent,
-  selectedCategories: Record<CalendarCategory, boolean>
-): boolean {
-  if (isCCMeeting(ev)) {
-    return !!(selectedCategories.meetings || selectedCategories.chidon);
-  }
-  if (ev.categories && ev.categories.length > 0) {
-    return ev.categories.some((cat) => selectedCategories[cat]);
-  }
-  return !!selectedCategories[ev.category];
-}
+/** Unified visibility check for both parent category, subcategory, and book filters */
+export const isEventVisibleByCategories = (
+  event: CalendarEvent,
+  selectedCategories: Record<CalendarCategory, boolean>,
+  selectedSubCategories?: Record<string, boolean>
+): boolean => {
+  if (!event) return false;
 
+  // 1. Format Limmud event card titles dynamically across all calendar views
+  if (event.subCategory === 'Limmud Schedule' && event.bookNumber) {
+    const rawRange = (event.rangeValue || event.title || '').trim();
+    const isRange = rawRange.includes('-') || rawRange.includes('–');
+    const unitLabel = isRange ? 'Units' : 'Unit';
+    const formattedRange = rawRange.replace(/[-–]/, '–');
+
+    const formattedTitle = `Book ${event.bookNumber}: ${unitLabel} ${formattedRange}`;
+    event.title = formattedTitle;
+    event.shortTitle = formattedTitle;
+  }
+
+  // 2. Check major parent category
+  if (selectedCategories && selectedCategories[event.category] === false) {
+    return false;
+  }
+
+  // 3. Subcategory & Book filtering logic
+  if (selectedSubCategories) {
+    // If the event is a Limmud Schedule event
+    if (event.subCategory === 'Limmud Schedule') {
+      // If the specific book is explicitly toggled ON (e.g., 'Book 1'), show its individual card
+      if (event.bookNumber && selectedSubCategories[`Book ${event.bookNumber}`] === true) {
+        return true;
+      }
+      // Otherwise, hide individual Limmud cards from standard views (module renders separately)
+      return false;
+    }
+
+    // Standard subcategory visibility check for all other categories
+    if (event.subCategory && selectedSubCategories[event.subCategory] === false) {
+      return false;
+    }
+  }
+
+  return true;
+};

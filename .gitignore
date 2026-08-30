@@ -1,6 +1,6 @@
 node_modules/
 build/
-# the built single-file app is what the Resources calendar tab links to,
+# the built single-file app is what the Resources calendar tab serves,
 # so it ships; everything else the build drops does not
 dist/*
 !dist/index.html
@@ -10,5 +10,5 @@ coverage/
 .env*
 !.env.example
 .cursor/
-# Windows download markers that came along with the source files
+# Windows download markers that ride along with the source files
 *:Zone.Identifier

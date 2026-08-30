@@ -19,6 +19,10 @@ import {
   STORAGE_KEYS,
 } from './utils/googleSheets';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { 
+  DEFAULT_SUBCATEGORIES_STATE, 
+  isEventVisibleByCategories 
+} from './data/categories';
 
 export default function App() {
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>(() => getInitialCalendarDays());
@@ -35,9 +39,10 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isExportOpen, setIsExportOpen] = useState<boolean>(false);
   const [showParsha, setShowParsha] = useState<boolean>(true);
+  const [showRoutines, setShowRoutines] = useState<boolean>(true); // <-- Added Routine Tasks toggle state
   const [syncToast, setSyncToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  // Initialize all categories as checked
+  // 1. Existing Category State
   const [selectedCategories, setSelectedCategories] = useState<Record<CalendarCategory, boolean>>(() => {
     const initial = {} as Record<CalendarCategory, boolean>;
     CATEGORY_KEYS.forEach((cat) => {
@@ -45,6 +50,50 @@ export default function App() {
     });
     return initial;
   });
+
+  // 2. Subcategory State (Defaults 'Limmud Schedule' to false)
+  const [selectedSubCategories, setSelectedSubCategories] = useState<Record<string, boolean>>(
+    DEFAULT_SUBCATEGORIES_STATE
+  );
+
+  // Toggle Handler for Major Categories
+  const handleToggleCategory = useCallback((cat: CalendarCategory) => {
+    setSelectedCategories((prev) => ({
+      ...prev,
+      [cat]: !prev[cat],
+    }));
+  }, []);
+
+  // Toggle Handler for Subcategories (Robust boolean flip logic with useCallback)
+  const handleToggleSubCategory = useCallback((subCat: string) => {
+    setSelectedSubCategories((prev) => {
+      const isCurrentlyActive =
+        prev[subCat] !== undefined
+          ? prev[subCat]
+          : subCat !== 'Limmud Schedule';
+
+      return {
+        ...prev,
+        [subCat]: !isCurrentlyActive,
+      };
+    });
+  }, []);
+
+  const handleSelectAllCategories = useCallback(() => {
+    const all = {} as Record<CalendarCategory, boolean>;
+    CATEGORY_KEYS.forEach((k) => {
+      all[k] = true;
+    });
+    setSelectedCategories(all);
+  }, []);
+
+  const handleClearAllCategories = useCallback(() => {
+    const none = {} as Record<CalendarCategory, boolean>;
+    CATEGORY_KEYS.forEach((k) => {
+      none[k] = false;
+    });
+    setSelectedCategories(none);
+  }, []);
 
   const availableMonths = useMemo(() => getGregorianMonths(calendarDays), [calendarDays]);
   const hebrewMonths = useMemo(() => getHebrewMonths(calendarDays), [calendarDays]);
@@ -126,32 +175,9 @@ export default function App() {
     }
   };
 
-  const handleToggleCategory = (category: CalendarCategory) => {
-    setSelectedCategories((prev) => ({
-      ...prev,
-      [category]: !prev[category],
-    }));
-  };
-
-  const handleSelectAllCategories = () => {
-    const all = {} as Record<CalendarCategory, boolean>;
-    CATEGORY_KEYS.forEach((k) => {
-      all[k] = true;
-    });
-    setSelectedCategories(all);
-  };
-
-  const handleClearAllCategories = () => {
-    const none = {} as Record<CalendarCategory, boolean>;
-    CATEGORY_KEYS.forEach((k) => {
-      none[k] = false;
-    });
-    setSelectedCategories(none);
-  };
-
   const totalFilteredEvents = useMemo(() => {
-    return flattenCalendarEvents(calendarDays, selectedCategories, searchQuery).length;
-  }, [calendarDays, selectedCategories, searchQuery]);
+    return flattenCalendarEvents(calendarDays, selectedCategories, searchQuery, selectedSubCategories).length;
+  }, [calendarDays, selectedCategories, searchQuery, selectedSubCategories]);
 
   const totalAllEvents = useMemo(() => {
     return calendarDays.reduce((sum, d) => sum + d.events.length, 0);
@@ -171,11 +197,15 @@ export default function App() {
         totalFilteredEvents={totalFilteredEvents}
         selectedCategories={selectedCategories}
         onToggleCategory={handleToggleCategory}
+        selectedSubCategories={selectedSubCategories}
+        onToggleSubCategory={handleToggleSubCategory}
         onSelectAllCategories={handleSelectAllCategories}
         onClearAllCategories={handleClearAllCategories}
         calendarDays={calendarDays}
         showParsha={showParsha}
         onToggleShowParsha={() => setShowParsha(!showParsha)}
+        showRoutines={showRoutines}
+        onToggleShowRoutines={() => setShowRoutines(!showRoutines)}
         isSyncing={isSyncing}
         lastSyncedTime={lastSyncedTime}
         onSync={() => handleSyncSheet(undefined, false)}
@@ -210,8 +240,10 @@ export default function App() {
             availableMonths={availableMonths}
             hebrewMonths={hebrewMonths}
             selectedCategories={selectedCategories}
+            selectedSubCategories={selectedSubCategories}
             searchQuery={searchQuery}
             showParsha={showParsha}
+            showRoutines={showRoutines}
             onSelectDay={() => {}}
             todayIso={todayIso}
             onGoToToday={handleGoToToday}
@@ -233,8 +265,10 @@ export default function App() {
             onNavigateHebrewMonth={setCurrentHebrewMonthKey}
             hebrewMonths={hebrewMonths}
             selectedCategories={selectedCategories}
+            selectedSubCategories={selectedSubCategories}
             searchQuery={searchQuery}
             showParsha={showParsha}
+            showRoutines={showRoutines}
             onSelectDay={() => {}}
             todayIso={todayIso}
             onGoToToday={handleGoToToday}
@@ -246,8 +280,10 @@ export default function App() {
             days={calendarDays}
             calendarSystem={calendarSystem}
             selectedCategories={selectedCategories}
+            selectedSubCategories={selectedSubCategories}
             searchQuery={searchQuery}
             showParsha={showParsha}
+            showRoutines={showRoutines}
             onSelectDay={() => {}}
             todayIso={todayIso}
           />
@@ -258,6 +294,7 @@ export default function App() {
             days={calendarDays}
             calendarSystem={calendarSystem}
             selectedCategories={selectedCategories}
+            selectedSubCategories={selectedSubCategories}
             searchQuery={searchQuery}
             onSelectDay={() => {}}
             todayIso={todayIso}
@@ -269,6 +306,7 @@ export default function App() {
             days={calendarDays}
             calendarSystem={calendarSystem}
             selectedCategories={selectedCategories}
+            selectedSubCategories={selectedSubCategories}
             searchQuery={searchQuery}
             onSelectDay={() => {}}
             todayIso={todayIso}

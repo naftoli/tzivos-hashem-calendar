@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Download,
   Search,
@@ -12,6 +12,7 @@ import {
   ChevronDown,
   RefreshCw,
   FileSpreadsheet,
+  Settings,
 } from 'lucide-react';
 import { CalendarViewType, CalendarSystem, CalendarCategory, CalendarDay } from '../types';
 import { CATEGORY_KEYS } from '../data/categories';
@@ -29,11 +30,15 @@ interface HeaderProps {
   totalFilteredEvents: number;
   selectedCategories: Record<CalendarCategory, boolean>;
   onToggleCategory: (cat: CalendarCategory) => void;
+  selectedSubCategories?: Record<string, boolean>; // <-- ADD THIS
+  onToggleSubCategory?: (subCat: string) => void;   // <-- ADD THIS
   onSelectAllCategories: () => void;
   onClearAllCategories: () => void;
   calendarDays: CalendarDay[];
   showParsha: boolean;
   onToggleShowParsha: () => void;
+  showRoutines: boolean;
+  onToggleShowRoutines: () => void;
   isSyncing?: boolean;
   lastSyncedTime?: string | null;
   onSync?: () => void;
@@ -51,21 +56,38 @@ export const Header: React.FC<HeaderProps> = ({
   totalFilteredEvents,
   selectedCategories,
   onToggleCategory,
+  selectedSubCategories,
+  onToggleSubCategory,
   onSelectAllCategories,
   onClearAllCategories,
   calendarDays,
   showParsha,
   onToggleShowParsha,
+  showRoutines,
+  onToggleShowRoutines,
   isSyncing = false,
   lastSyncedTime = null,
   onSync,
   onOpenSyncModal,
 }) => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
   const filterBtnRef = React.useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+        setIsSettingsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const activeCategoryCount = Object.values(selectedCategories).filter(Boolean).length;
   const isFiltered = activeCategoryCount < CATEGORY_KEYS.length;
+
 
   return (
     <header className="bg-[#15265c] border-b border-[#2c3c6d] sticky top-0 z-30 shadow-md" id="app-header">
@@ -95,39 +117,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Action Bar */}
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2.5">
-            {/* Calendar System Switcher (Hebrew vs Gregorian) */}
-            <div className="flex items-center bg-[#2c3c6d] p-0.5 rounded-lg border border-[#394a7a] shadow-2xs shrink-0" id="calendar-system-selector">
-              <button
-                id="system-hebrew-btn"
-                onClick={() => onCalendarSystemChange('hebrew')}
-                className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
-                  calendarSystem === 'hebrew'
-                    ? 'bg-[#394a7a] text-white shadow-xs'
-                    : 'text-[#b1c0dd] hover:text-white hover:bg-[#394a7a]/50'
-                }`}
-                title="Display by Jewish/Hebrew months (Tishrei, Cheshvan, Kislev...)"
-              >
-                <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-[3px] sm:rounded-[4px] bg-[#15265c]/80 border border-[#394a7a] flex items-center justify-center font-serif text-[10px] sm:text-[11px] font-bold leading-none text-[#fef08a] select-none shadow-2xs">
-                  א
-                </span>
-                <span>Hebrew</span>
-              </button>
-              <button
-                id="system-gregorian-btn"
-                onClick={() => onCalendarSystemChange('gregorian')}
-                className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
-                  calendarSystem === 'gregorian'
-                    ? 'bg-[#394a7a] text-white shadow-xs'
-                    : 'text-[#b1c0dd] hover:text-white hover:bg-[#394a7a]/50'
-                }`}
-                title="Display by Gregorian months (August, September, October...)"
-              >
-                <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-[3px] sm:rounded-[4px] bg-[#15265c]/80 border border-[#394a7a] flex items-center justify-center font-serif text-[9px] sm:text-[10px] font-bold tracking-tight leading-none text-[#b1c0dd] select-none shadow-2xs">
-                  A
-                </span>
-                <span>English</span>
-              </button>
-            </div>
+            
 
             {/* View Switcher Tabs */}
             <div className="flex items-center bg-[#2c3c6d] p-0.5 rounded-lg border border-[#394a7a] shrink-0" id="view-mode-selector">
@@ -198,44 +188,6 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
             </div>
 
-            {/* Live Google Sheets Sync Button */}
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                id="sync-sheet-btn"
-                onClick={onSync}
-                disabled={isSyncing}
-                className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-emerald-900/60 hover:bg-emerald-800/80 text-emerald-200 hover:text-white rounded-lg text-[11px] sm:text-xs font-semibold border border-emerald-600/50 transition-all shadow-xs cursor-pointer disabled:opacity-50"
-                title="Sync calendar directly from live Google Sheet (pull latest changes)"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 text-emerald-400 ${isSyncing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{isSyncing ? 'Syncing...' : 'Sync Sheet'}</span>
-                <span className="sm:hidden">{isSyncing ? '...' : 'Sync'}</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-sm hidden md:inline-block" />
-              </button>
-
-              {onOpenSyncModal && (
-                <button
-                  id="sheet-settings-btn"
-                  onClick={onOpenSyncModal}
-                  className="p-1 sm:p-1.5 bg-[#2c3c6d] hover:bg-[#394a7a] text-[#b1c0dd] hover:text-white rounded-lg border border-[#394a7a] text-[11px] transition-colors cursor-pointer"
-                  title="Google Sheets Live Connection Details"
-                >
-                  <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
-                </button>
-              )}
-            </div>
-
-            {/* Export Button */}
-            <button
-              id="export-calendar-btn"
-              onClick={onOpenExport}
-              className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-[#394a7a] hover:bg-[#4f6297] text-white rounded-lg text-[11px] sm:text-xs font-semibold border border-[#b1c0dd]/40 transition-colors shadow-xs cursor-pointer shrink-0"
-              title="Export calendar to CSV, JSON, Google Sheets"
-            >
-              <Download className="w-3.5 h-3.5 text-[#b1c0dd]" />
-              <span>Export</span>
-            </button>
-
             {/* Filter Toggle Button & Anchored Dropdown Card */}
             <div className="relative shrink-0">
               <button
@@ -271,17 +223,21 @@ export const Header: React.FC<HeaderProps> = ({
 
               {/* Anchored Filter Card Popover */}
               <CategoryFilterCard
-                isOpen={isFilterOpen}
-                onClose={() => setIsFilterOpen(false)}
-                selectedCategories={selectedCategories}
-                onToggleCategory={onToggleCategory}
-                onSelectAll={onSelectAllCategories}
-                onClearAll={onClearAllCategories}
-                calendarDays={calendarDays}
-                showParsha={showParsha}
-                onToggleShowParsha={onToggleShowParsha}
-                triggerRef={filterBtnRef}
-              />
+  isOpen={isFilterOpen}
+  onClose={() => setIsFilterOpen(false)}
+  selectedCategories={selectedCategories}
+  onToggleCategory={onToggleCategory}
+  selectedSubCategories={selectedSubCategories}
+  onToggleSubCategory={onToggleSubCategory}    
+  onSelectAll={onSelectAllCategories}
+  onClearAll={onClearAllCategories}
+  calendarDays={calendarDays}
+  showParsha={showParsha}
+  onToggleShowParsha={onToggleShowParsha}
+  showRoutines={showRoutines}
+  onToggleShowRoutines={onToggleShowRoutines} 
+  triggerRef={filterBtnRef}
+/>
             </div>
 
             {/* Search Input */}
@@ -290,7 +246,7 @@ export const Header: React.FC<HeaderProps> = ({
               <input
                 id="event-search-input"
                 type="text"
-                value={searchQuery}
+                value={searchQuery ?? ''}
                 onChange={(e) => onSearchChange(e.target.value)}
                 placeholder="Search events, Parsha..."
                 className="w-full pl-8 pr-7 py-1 sm:py-1.5 text-xs bg-[#2c3c6d] border border-[#394a7a] rounded-lg text-white placeholder:text-[#b1c0dd]/60 focus:outline-none focus:ring-2 focus:ring-[#b1c0dd] focus:border-[#b1c0dd] transition-all"
@@ -305,6 +261,107 @@ export const Header: React.FC<HeaderProps> = ({
                 </button>
               )}
             </div>
+            {/* Calendar System Switcher (Hebrew vs Gregorian) */}
+            <div className="flex items-center bg-[#2c3c6d] p-0.5 rounded-lg border border-[#394a7a] shadow-2xs shrink-0" id="calendar-system-selector">
+              <button
+                id="system-hebrew-btn"
+                onClick={() => onCalendarSystemChange('hebrew')}
+                className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
+                  calendarSystem === 'hebrew'
+                    ? 'bg-[#394a7a] text-white shadow-xs'
+                    : 'text-[#b1c0dd] hover:text-white hover:bg-[#394a7a]/50'
+                }`}
+                title="Display by Jewish/Hebrew months (Tishrei, Cheshvan, Kislev...)"
+              >
+                <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-[3px] sm:rounded-[4px] bg-[#15265c]/80 border border-[#394a7a] flex items-center justify-center font-serif text-[10px] sm:text-[11px] font-bold leading-none text-[#b1c0dd] select-none shadow-2xs">
+                  א
+                </span>
+                <span>Hebrew</span>
+              </button>
+              <button
+                id="system-gregorian-btn"
+                onClick={() => onCalendarSystemChange('gregorian')}
+                className={`flex items-center gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-md text-[11px] sm:text-xs font-semibold transition-all cursor-pointer ${
+                  calendarSystem === 'gregorian'
+                    ? 'bg-[#394a7a] text-white shadow-xs'
+                    : 'text-[#b1c0dd] hover:text-white hover:bg-[#394a7a]/50'
+                }`}
+                title="Display by Gregorian months (August, September, October...)"
+              >
+                <span className="w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-[3px] sm:rounded-[4px] bg-[#15265c]/80 border border-[#394a7a] flex items-center justify-center font-serif text-[9px] sm:text-[10px] font-bold tracking-tight leading-none text-[#b1c0dd] select-none shadow-2xs">
+                  A
+                </span>
+                <span>English</span>
+              </button>
+            </div>
+            {/* Settings Gear Dropdown Menu */}
+<div className="relative shrink-0" ref={settingsRef}>
+  <button
+    id="settings-toggle-btn"
+    onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+    className={`p-1.5 sm:p-2 rounded-lg text-xs font-semibold transition-all border shadow-xs cursor-pointer flex items-center justify-center ${
+      isSettingsOpen
+        ? 'bg-[#394a7a] text-white border-[#b1c0dd]'
+        : 'bg-[#2c3c6d] hover:bg-[#394a7a] text-[#b1c0dd] hover:text-white border-[#394a7a]'
+    }`}
+    title="Calendar Settings & Tools"
+  >
+    <Settings className={`w-4 h-4 transition-transform duration-200 ${isSettingsOpen ? 'rotate-90 text-white' : ''}`} />
+  </button>
+
+  {/* Dropdown Card */}
+  {isSettingsOpen && (
+<div className="absolute left-0 mt-2 w-56 max-w-[calc(100vw-2rem)] bg-[#edf4fc] border-2 border-[#b4cae8] rounded-xl shadow-2xl p-2 z-50 animate-in fade-in zoom-in-95 duration-150 text-[#15265c] space-y-1">
+      {/* 1. Sync Sheet Action */}
+<button
+  onClick={async (e) => {
+    e.stopPropagation(); // Prevents menu closure or event bubbling
+    if (onSync && !isSyncing) {
+      await onSync();
+    }
+  }}
+  disabled={isSyncing}
+  className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-[#e1ecfa] hover:bg-[#d5e4f7] text-[#15265c] font-semibold text-xs transition-colors border border-[#c8d8ee] cursor-pointer disabled:opacity-50"
+>
+  <div className="flex items-center gap-2">
+    <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${isSyncing ? 'animate-spin' : ''}`} />
+    <span>{isSyncing ? 'Syncing...' : 'Sync Sheet'}</span>
+  </div>
+  <span className={`w-2 h-2 rounded-full ${isSyncing ? 'bg-amber-500 animate-ping' : 'bg-emerald-500 animate-pulse'}`} />
+</button>
+
+      {/* 2. Sheet Settings Details */}
+      {onOpenSyncModal && (
+        <button
+          onClick={() => {
+            setIsSettingsOpen(false);
+            onOpenSyncModal();
+          }}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-[#e1ecfa] hover:bg-[#d5e4f7] text-[#15265c] font-semibold text-xs transition-colors border border-[#c8d8ee] cursor-pointer"
+        >
+          <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+          <span>Sheet Details</span>
+        </button>
+      )}
+
+      {/* Divider */}
+      <div className="h-px bg-[#c8d8ee] my-1" />
+
+      {/* 3. Export Calendar */}
+      <button
+        onClick={() => {
+          setIsSettingsOpen(false);
+          onOpenExport();
+        }}
+        className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-[#15265c] hover:bg-[#1e3a8a] text-white font-semibold text-xs transition-colors shadow-2xs cursor-pointer"
+      >
+        <Download className="w-3.5 h-3.5 text-amber-300" />
+        <span>Export Calendar</span>
+      </button>
+    </div>
+  )}
+</div>
+
           </div>
         </div>
       </div>

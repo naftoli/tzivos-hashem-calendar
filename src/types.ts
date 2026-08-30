@@ -9,7 +9,8 @@ export type CalendarCategory =
   | 'raffle_5m'
   | 'raffle_60m'
   | 'shabbos_mevorchim'
-  | 'cp';
+  | 'cp'
+  | 'contests_sales';
 
 export interface CalendarEvent {
   id: string;
@@ -24,6 +25,11 @@ export interface CalendarEvent {
   time?: string; // e.g. "9:00 PM"
   isGlobal?: boolean;
   shadingLevel?: string; // "LIGHT" | "DARK" etc.
+  // Chidon Limmud Tags
+  bookNumber?: number;     // 1, 2, 3, 4, or 5
+  rangeValue?: string;     // e.g. "100 - 200"
+  hideFromGrid?: boolean;  // Hides from Month & Year view grids
+  hideFromList?: boolean;  // Hides from Table & Agenda views
 }
 
 export interface CalendarDay {

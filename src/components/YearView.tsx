@@ -8,7 +8,9 @@ import {
 } from 'lucide-react';
 import { CalendarDay, CalendarEvent, CalendarCategory, CalendarSystem, HebrewMonthMeta } from '../types';
 import { CATEGORIES, isCCMeeting, isEventVisibleByCategories } from '../data/categories';
+import { getDayRoutine } from '../data/dayDescriptions';
 import { DayDescriptionSection } from './DayDescriptionSection';
+import { RoutineTaskPill } from './RoutineTaskPill';
 import { ChidonIcon } from './ChidonIcon';
 import { HachayolIcon } from './HachayolIcon';
 import { FiveMIcon } from './FiveMIcon';
@@ -21,6 +23,7 @@ import { MeetingIcon } from './MeetingIcon';
 import { TorahIcon } from './TorahIcon';
 import { CpIcon } from './CpIcon';
 import { PromotionCeremonyIcon } from './PromotionCeremonyIcon';
+import { getMivtzaSubtitles } from '../data/mivtzaData';
 import {
   groupEventsForCardDisplay,
   get5MLabel,
@@ -33,8 +36,10 @@ interface YearViewProps {
   availableMonths: { year: number; month: number; label: string }[];
   hebrewMonths: HebrewMonthMeta[];
   selectedCategories: Record<CalendarCategory, boolean>;
+  selectedSubCategories?: Record<string, boolean>;
   searchQuery: string;
   showParsha: boolean;
+  showRoutines?: boolean;
   onSelectDay: (day: CalendarDay) => void;
   todayIso: string;
   onGoToToday: () => void;
@@ -56,8 +61,10 @@ export const YearView: React.FC<YearViewProps> = ({
   availableMonths,
   hebrewMonths,
   selectedCategories,
+  selectedSubCategories,
   searchQuery,
   showParsha,
+  showRoutines = true,
   onSelectDay,
   todayIso,
   onGoToToday,
@@ -71,7 +78,6 @@ export const YearView: React.FC<YearViewProps> = ({
   const [currentMonthIndex, setCurrentMonthIndex] = useState<number>(0);
   const [isOverMonthBox, setIsOverMonthBox] = useState<boolean>(false);
 
-  // Dynamically measure the top main header height so the Year sticky header stays right below it
   useEffect(() => {
     const updateHeaderHeight = () => {
       const headerEl = document.getElementById('app-header');
@@ -95,15 +101,14 @@ export const YearView: React.FC<YearViewProps> = ({
     };
   }, []);
 
-  // Filter events by search & categories
   const filterEvents = (events: CalendarEvent[], day: CalendarDay) => {
     const query = searchQuery.trim().toLowerCase();
     return events.filter((ev) => {
-      if (!isEventVisibleByCategories(ev, selectedCategories)) return false;
+      if (!isEventVisibleByCategories(ev, selectedCategories, selectedSubCategories)) return false;
       if (!query) return true;
       return (
         ev.title.toLowerCase().includes(query) ||
-        ev.subCategory.toLowerCase().includes(query) ||
+        (ev.subCategory && ev.subCategory.toLowerCase().includes(query)) ||
         day.hebrewDate.toLowerCase().includes(query) ||
         day.englishDate.toLowerCase().includes(query) ||
         day.parsha.toLowerCase().includes(query)
@@ -111,7 +116,6 @@ export const YearView: React.FC<YearViewProps> = ({
     });
   };
 
-  // Group all calendar days into months
   const monthsData = useMemo(() => {
     if (isHebrewMode) {
       return hebrewMonths.map((hm, idx) => {
@@ -119,7 +123,6 @@ export const YearView: React.FC<YearViewProps> = ({
           (d) => (d.hebrewMonthKey || `${d.hebrewYear}-${d.hebrewMonth}`) === hm.key
         );
 
-        // Calculate leading slots
         const leadingCount = mDays.length > 0 ? WEEKDAY_NAMES.indexOf(mDays[0].dayOfWeek) : 0;
         const allSlots: (CalendarDay | null)[] = [];
         for (let i = 0; i < leadingCount; i++) {
@@ -148,7 +151,6 @@ export const YearView: React.FC<YearViewProps> = ({
       });
     }
 
-    // Gregorian Mode
     return availableMonths.map((gm, idx) => {
       const mDays = days.filter((d) => d.year === gm.year && d.month === gm.month);
       const leadingCount = mDays.length > 0 ? WEEKDAY_NAMES.indexOf(mDays[0].dayOfWeek) : 0;
@@ -179,7 +181,6 @@ export const YearView: React.FC<YearViewProps> = ({
     });
   }, [isHebrewMode, hebrewMonths, availableMonths, days]);
 
-  // Ensure currentMonthIndex is always in sync with activeMonthKey and monthsData
   useEffect(() => {
     const idx = monthsData.findIndex((m) => m.id === activeMonthKey);
     if (idx !== -1) {
@@ -190,7 +191,6 @@ export const YearView: React.FC<YearViewProps> = ({
     }
   }, [activeMonthKey, monthsData]);
 
-  // Track active month in center header & detect if sticky header is over a month box
   useEffect(() => {
     const handleScroll = () => {
       const stickyContainer = document.getElementById('year-sticky-header');
@@ -210,12 +210,10 @@ export const YearView: React.FC<YearViewProps> = ({
         if (!el) continue;
         const rect = el.getBoundingClientRect();
 
-        // Check if floating header is currently overlapping a month box
         if (rect.top <= stickyBottom + 5 && rect.bottom >= stickyTop) {
           foundOverMonth = true;
         }
 
-        // If target line is inside this month box
         if (rect.top <= targetY && rect.bottom >= targetY) {
           activeIdx = i;
           minDistance = 0;
@@ -240,13 +238,7 @@ export const YearView: React.FC<YearViewProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, [monthsData]);
 
-  // Handle smooth scroll to specific month box
   const scrollToMonth = (monthId: string) => {
-    setActiveMonthKey(monthId);
-    const targetIdx = monthsData.findIndex((m) => m.id === monthId);
-    if (targetIdx !== -1) {
-      setCurrentMonthIndex(targetIdx);
-    }
     const element = document.getElementById(`year-month-box-${monthId}`);
     if (element) {
       const yOffset = -(headerHeight + 90);
@@ -255,7 +247,6 @@ export const YearView: React.FC<YearViewProps> = ({
     }
   };
 
-  // Navigate to previous/next month in the list
   const handlePrevMonthJump = () => {
     const currentIdx = monthsData.findIndex((m) => m.id === activeMonthKey);
     if (currentIdx > 0) {
@@ -270,7 +261,6 @@ export const YearView: React.FC<YearViewProps> = ({
     }
   };
 
-  // Scroll smoothly to today's date
   const handleScrollToToday = () => {
     onGoToToday();
     const todayEl = document.getElementById(`year-day-cell-${todayIso}`);
@@ -278,7 +268,6 @@ export const YearView: React.FC<YearViewProps> = ({
       todayEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
       setSelectedDayIso(todayIso);
     } else {
-      // Find which month has today
       const todayDay = days.find((d) => d.isoDate === todayIso);
       if (todayDay) {
         const monthKey = isHebrewMode
@@ -308,20 +297,18 @@ export const YearView: React.FC<YearViewProps> = ({
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-2 sm:pt-2.5 pb-20 space-y-3" id="year-view-container">
-      {/* Sticky Bar Area (Thinner Top Bar + Floating Weekday Header) */}
+      {/* Sticky Bar Area */}
       <div
         id="year-sticky-header"
         className="sticky z-20 space-y-1.5 pb-1 pointer-events-none transition-[top] duration-100"
         style={{ top: `${headerHeight}px` }}
       >
-        {/* Thinner Top Navigation Bar */}
         <div className="pointer-events-auto flex items-center justify-between gap-2 bg-[#dde8f6]/95 backdrop-blur-md px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl border border-[#b8cee8] shadow-md">
-          {/* Left: Navigation Buttons */}
           <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={handlePrevMonthJump}
               id="year-prev-month-btn"
-              className="p-1 sm:p-1.5 rounded-lg border border-[#b8cee8] bg-[#edf5fd] hover:bg-[#d8e8f8] text-[#15265c] transition-colors touch-manipulation cursor-pointer flex items-center justify-center shadow-2xs"
+              className="p-1 sm:p-1.5 rounded-lg border border-[#b8cee8] bg-[#edf5fd] hover:bg-[#d8e8f8] text-[#15265c] transition-colors cursor-pointer flex items-center justify-center shadow-2xs"
               title="Scroll to previous month"
               aria-label="Previous Month"
             >
@@ -330,7 +317,7 @@ export const YearView: React.FC<YearViewProps> = ({
             <button
               onClick={handleScrollToToday}
               id="year-today-quick-btn"
-              className="flex px-2 py-1 rounded-lg border border-amber-300 hover:border-amber-400 bg-amber-50 hover:bg-amber-100 text-[#15265c] text-[11px] sm:text-xs font-bold transition-all touch-manipulation items-center gap-1.5 cursor-pointer shadow-2xs"
+              className="flex px-2 py-1 rounded-lg border border-amber-300 hover:border-amber-400 bg-amber-50 hover:bg-amber-100 text-[#15265c] text-[11px] sm:text-xs font-bold transition-all items-center gap-1.5 cursor-pointer shadow-2xs"
               title="Scroll to Today's date"
             >
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
@@ -339,7 +326,7 @@ export const YearView: React.FC<YearViewProps> = ({
             <button
               onClick={handleNextMonthJump}
               id="year-next-month-btn"
-              className="p-1 sm:p-1.5 rounded-lg border border-[#b8cee8] bg-[#edf5fd] hover:bg-[#d8e8f8] text-[#15265c] transition-colors touch-manipulation cursor-pointer flex items-center justify-center shadow-2xs"
+              className="p-1 sm:p-1.5 rounded-lg border border-[#b8cee8] bg-[#edf5fd] hover:bg-[#d8e8f8] text-[#15265c] transition-colors cursor-pointer flex items-center justify-center shadow-2xs"
               title="Scroll to next month"
               aria-label="Next Month"
             >
@@ -347,10 +334,9 @@ export const YearView: React.FC<YearViewProps> = ({
             </button>
           </div>
 
-          {/* Middle: Smoothly Scrolling Month Title */}
           <div className="flex-1 flex justify-center items-center px-1 overflow-hidden min-w-0">
             <div
-              className="h-8 overflow-hidden relative w-full max-w-xs sm:max-w-sm md:max-w-md"
+              className="h-8 overflow-hidden relative w-full max-w-lg sm:max-w-xl md:max-w-2xl"
               id="year-header-month-roller"
             >
               <div
@@ -359,26 +345,43 @@ export const YearView: React.FC<YearViewProps> = ({
                   transform: `translateY(-${currentMonthIndex * 32}px)`,
                 }}
               >
-                {monthsData.map((m) => (
-                  <div
-                    key={m.id}
-                    className="h-8 flex items-center justify-center gap-1.5 sm:gap-2 px-1 text-center w-full shrink-0"
-                  >
-                    <span className="text-xs sm:text-sm font-extrabold text-[#15265c] font-hebrew tracking-tight whitespace-nowrap">
-                      {m.titlePrimary}
-                    </span>
-                    {m.titleSecondary && (
-                      <span className="hidden sm:inline-block text-[10px] sm:text-[11px] font-semibold text-[#15265c] bg-[#cce0f5] border border-[#b8cee8] px-1.5 py-0.5 rounded shrink-0 whitespace-nowrap">
-                        {m.titleSecondary}
-                      </span>
-                    )}
-                  </div>
-                ))}
+                {monthsData.map((m) => {
+                  const monthMivtzaItems = isHebrewMode ? getMivtzaSubtitles(m.titleSecondary || m.titlePrimary) : [];
+                  const hasMivtza = monthMivtzaItems.length > 0;
+
+                  return (
+                    <div
+                      key={m.id}
+                      className="h-8 relative flex items-center justify-center px-2 w-full shrink-0"
+                    >
+                      <div className="flex items-center justify-center gap-1.5 sm:gap-2 whitespace-nowrap min-w-0">
+                        <span className="text-xs sm:text-sm font-extrabold text-[#15265c] font-hebrew tracking-tight">
+                          {m.titlePrimary}
+                        </span>
+                        {m.titleSecondary && (
+                          <span className="hidden sm:inline-block text-[10px] sm:text-[11px] font-semibold text-[#15265c] bg-[#cce0f5] border border-[#b8cee8] px-1.5 py-0.5 rounded shrink-0">
+                            {m.titleSecondary}
+                          </span>
+                        )}
+                      </div>
+
+                      {hasMivtza && (
+                        <div className="hidden lg:flex flex-col items-center justify-center text-center bg-gradient-to-r from-amber-500/[7%] to-amber-600/[15%] border border-amber-400/[35%] rounded-lg px-2 py-0.5 shadow-2xs shrink-0 whitespace-nowrap absolute right-3 top-1/2 -translate-y-1/2">
+                          <span className="text-[8.5px] font-extrabold uppercase tracking-wider text-amber-800 text-center">
+                            Mivtza of the Month
+                          </span>
+                          <div className="text-[10px] font-bold text-[#15265c] leading-tight text-center">
+                            <span>{monthMivtzaItems.join(' and ')}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
 
-          {/* Right: Jump to Month Dropdown */}
           <div className="flex items-center gap-1.5 shrink-0">
             <label htmlFor="year-month-select" className="text-[11px] text-slate-600 font-semibold hidden lg:inline">
               Jump:
@@ -398,12 +401,11 @@ export const YearView: React.FC<YearViewProps> = ({
           </div>
         </div>
 
-        {/* Floating Weekday Header (Matches spacing of calendar month box, outer container fades out to 0% at bottom, darker blue day cards stay 100% solid) */}
+        {/* Floating Weekday Header + Desktop Routine Tasks Bar */}
         <div
           id="year-floating-weekdays"
-          className="pointer-events-auto relative px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all duration-300"
+          className="pointer-events-auto relative px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl transition-all duration-300 space-y-1"
         >
-          {/* Outer container background and border with smooth bottom fade to 0% */}
           <div
             className="absolute inset-0 bg-[#dde8f6]/95 backdrop-blur-md rounded-xl border border-[#b8cee8] shadow-md pointer-events-none transition-all duration-300"
             style={{
@@ -416,7 +418,6 @@ export const YearView: React.FC<YearViewProps> = ({
             }}
           />
 
-          {/* Weekday Grid with exact matching column gaps and padding - 100% solid dark blue cards */}
           <div className="relative z-10 grid grid-cols-7 gap-1 sm:gap-1.25 text-center">
             {WEEKDAY_NAMES.map((dow, i) => (
               <div
@@ -436,6 +437,26 @@ export const YearView: React.FC<YearViewProps> = ({
               </div>
             ))}
           </div>
+
+          {/* Desktop Routine Tasks Row Under Floating Weekday Headers */}
+          {showRoutines && (
+            <div className="relative z-10 hidden sm:grid grid-cols-7 gap-1 sm:gap-1.25 text-left pt-1">
+              {WEEKDAY_NAMES.map((dow) => {
+                const routine = getDayRoutine(dow, selectedSubCategories);
+                if (!routine || routine.items.length === 0) {
+                  return <div key={`empty-yr-routine-${dow}`} className="min-h-0" />;
+                }
+
+                return (
+                  <div key={`yr-header-routine-${dow}`} className="space-y-1">
+                    {routine.items.map((item, idx) => (
+                      <RoutineTaskPill key={`yr-routine-card-${idx}`} item={item} variant="grid" />
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -447,7 +468,6 @@ export const YearView: React.FC<YearViewProps> = ({
             id={`year-month-box-${month.id}`}
             className="bg-[#dde8f6] rounded-2xl border border-[#b8cee8] p-3 sm:p-4 shadow-md space-y-2.5 scroll-mt-28"
           >
-            {/* Month Header inside its Box */}
             <div className="flex items-center justify-between gap-2 border-b border-[#b8cee8] pb-2">
               <div className="flex items-baseline gap-2 flex-wrap">
                 <h3 className="text-base sm:text-lg font-bold tracking-tight text-[#15265c] font-hebrew">
@@ -469,7 +489,6 @@ export const YearView: React.FC<YearViewProps> = ({
               </span>
             </div>
 
-            {/* 7-Column Days Grid for this Month */}
             <div className="grid grid-cols-7 gap-1 sm:gap-1.25">
               {month.slots.map((day, slotIdx) => {
                 if (!day) {
@@ -501,7 +520,6 @@ export const YearView: React.FC<YearViewProps> = ({
                         : 'bg-[#d2e2f6] border-[#b4cae8] hover:bg-[#c5dbf4] hover:border-[#9ec1e8] hover:shadow-xs'
                     }`}
                   >
-                    {/* Day Top Header */}
                     <div>
                       <div className="flex items-start justify-between gap-0.5 sm:gap-1 mb-0.5 sm:mb-1">
                         {isHebrewMode ? (
@@ -550,7 +568,6 @@ export const YearView: React.FC<YearViewProps> = ({
                           </div>
                         )}
 
-                        {/* Indicators */}
                         <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
                           {isToday && (
                             <span
@@ -590,7 +607,6 @@ export const YearView: React.FC<YearViewProps> = ({
                         </div>
                       </div>
 
-                      {/* Parsha display on Shabbos */}
                       {showParsha && day.dayOfWeek === 'Shabbos' && day.parsha && (
                         <div
                           className="text-[9px] sm:text-[10.5px] font-bold font-hebrew text-[#15265c] bg-[#c3d9f3] px-1 sm:px-1.5 py-0.5 rounded border border-[#a4c4ea] truncate mb-1 text-center shadow-2xs flex items-center justify-center gap-1"
@@ -603,7 +619,7 @@ export const YearView: React.FC<YearViewProps> = ({
                         </div>
                       )}
 
-                      {/* Desktop Event Pills */}
+                      {/* Desktop Event Badges */}
                       {(() => {
                         const eventRows = groupEventsForCardDisplay(visibleEvents);
                         const rowsToDisplay = eventRows.slice(0, 3);
@@ -633,10 +649,7 @@ export const YearView: React.FC<YearViewProps> = ({
                               title={events.map((ev) => ev.title).join('\n')}
                             >
                               <div className="flex items-center gap-1 font-bold truncate leading-tight">
-                                <FiveMIcon
-                                  size={12.5}
-                                  className="shrink-0"
-                                />
+                                <FiveMIcon size={12.5} className="shrink-0" />
                                 <span className="truncate">Winners Announced</span>
                               </div>
                               <div className="flex flex-col gap-0 leading-tight">
@@ -677,39 +690,33 @@ export const YearView: React.FC<YearViewProps> = ({
                                 }`}
                                 title={`${ev.title}${ev.shortTitle && ev.shortTitle !== ev.title ? ` (${ev.shortTitle})` : ''} (${cat?.name || ''})`}
                               >
-                                <ShabbosMevorchimIcon
-                                  size={13}
-                                  color={cat?.color || '#6366f1'}
-                                  className="shrink-0"
-                                />
+                                <ShabbosMevorchimIcon size={13} color={cat?.color || '#6366f1'} className="shrink-0" />
                                 <span className="truncate">{ev.shortTitle || ev.title}</span>
                               </div>
                             );
                           }
-                            if (ev.category === 'promotion_ceremony') {
-  return (
-    <div
-      key={ev.id}
-      className={`text-[9px] leading-tight px-1.5 py-0.5 rounded border flex flex-col font-medium shadow-2xs min-w-0 ${
-        cat
-          ? `${cat.bgColor} ${cat.textColor} ${cat.borderColor}`
-          : 'bg-[#edf4fc] text-[#15265c] border-[#c8d8ee]'
-      }`}
-      title={`${ev.title}${ev.shortTitle && ev.shortTitle !== ev.title ? ` (${ev.shortTitle})` : ''} (${cat?.name || ''})`}
-    >
-      <div className="flex items-center gap-1 font-bold truncate leading-tight">
-        <PromotionCeremonyIcon
-          size={14}
-          className="shrink-0 relative top-[1px] -mx-1"
-        />
-        <span className="truncate -my-2 mx-[3px]">Promotion Ceremony</span>
-      </div>
-      <div className="text-[8px] opacity-90 truncate pl-3.5 font-normal leading-tight -mx-0.5">
-        {ev.shortTitle || ev.title}
-      </div>
-    </div>
-  );
-}
+                          if (ev.category === 'promotion_ceremony') {
+                            return (
+                              <div
+                                key={ev.id}
+                                className={`text-[9px] leading-tight px-1.5 py-0.5 rounded border flex flex-col font-medium shadow-2xs min-w-0 ${
+                                  cat
+                                    ? `${cat.bgColor} ${cat.textColor} ${cat.borderColor}`
+                                    : 'bg-[#edf4fc] text-[#15265c] border-[#c8d8ee]'
+                                }`}
+                                title={`${ev.title}${ev.shortTitle && ev.shortTitle !== ev.title ? ` (${ev.shortTitle})` : ''} (${cat?.name || ''})`}
+                              >
+                                <div className="flex items-center gap-1 font-bold truncate leading-tight">
+                                  <PromotionCeremonyIcon size={14} className="shrink-0 relative top-[1px] -mx-1" />
+                                  <span className="truncate -my-2 mx-[3px]">Promotion Ceremony</span>
+                                </div>
+                                <div className="text-[8px] opacity-90 truncate pl-3.5 font-normal leading-tight -mx-0.5">
+                                  {ev.shortTitle || ev.title}
+                                </div>
+                              </div>
+                            );
+                          }
+
                           const is5M = ev.category === 'raffle_5m';
                           if (is5M) {
                             const label = get5MLabel(ev);
@@ -725,10 +732,7 @@ export const YearView: React.FC<YearViewProps> = ({
                                 title={`${ev.title}${ev.shortTitle && ev.shortTitle !== ev.title ? ` (${ev.shortTitle})` : ''} (${cat?.name || ''})`}
                               >
                                 <div className="flex items-center gap-1 font-bold truncate leading-tight">
-                                  <FiveMIcon
-                                    size={12.5}
-                                    className="shrink-0"
-                                  />
+                                  <FiveMIcon size={12.5} className="shrink-0" />
                                   <span className="truncate">{label}</span>
                                 </div>
                                 {prize && (
@@ -755,10 +759,10 @@ export const YearView: React.FC<YearViewProps> = ({
                               {isCC ? (
                                 <div className="flex items-center gap-0.5 shrink-0">
                                   <MeetingIcon size={14} className="shrink-0" />
-                                  <ChidonIcon size={11} color="#d97706" className="shrink-0" />
+                                  <ChidonIcon size={11} color="#b48a18" className="shrink-0" />
                                 </div>
                               ) : ev.category === 'chidon' ? (
-                                <ChidonIcon className="w-3.5 h-3.5 shrink-0" />
+                                <ChidonIcon size={12} className="shrink-0" color="#b48a18" />
                               ) : ev.category === 'hachayol_battlefront' ? (
                                 <HachayolIcon size={13} className="shrink-0" color={cat?.color || '#0f766e'} />
                               ) : ev.category === 'raffle_5m' ? (
@@ -774,9 +778,9 @@ export const YearView: React.FC<YearViewProps> = ({
                               ) : ev.category === 'meetings' ? (
                                 <MeetingIcon size={15} className="shrink-0" />
                               ) : ev.category === 'rallies' && ev.isGlobal ? (
-                                <GlobalRallyIcon size={15} className="shrink-0" />
+                                <GlobalRallyIcon size={15} className="shrink-0 -my-1 -mx-0.5" />
                               ) : ev.category === 'cp' ? (
-                                  <CpIcon size={16} className="shrink-0 -my-1 -mx-0.5" />
+                                <CpIcon size={16} className="shrink-0 -my-1 -mx-0.5" />
                               ) : (
                                 <span
                                   className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -838,109 +842,38 @@ export const YearView: React.FC<YearViewProps> = ({
                             );
                           }
                           if (ev.category === 'chidon') {
-                            return (
-                              <ChidonIcon
-                                key={ev.id}
-                                size={10}
-                                color={cat?.color || '#d97706'}
-                                className="shrink-0 drop-shadow-2xs"
-                              />
-                            );
+                            return <ChidonIcon key={ev.id} size={10} color="#d97706" className="shrink-0 drop-shadow-2xs" />;
                           }
                           if (ev.category === 'hachayol_battlefront') {
-                            return (
-                              <HachayolIcon
-                                key={ev.id}
-                                size={11}
-                                color={cat?.color || '#0f766e'}
-                                className="shrink-0 drop-shadow-2xs"
-                              />
-                            );
+                            return <HachayolIcon key={ev.id} size={11} color={cat?.color || '#0f766e'} className="shrink-0 drop-shadow-2xs" />;
                           }
                           if (ev.category === 'raffle_5m') {
-                            return (
-                              <FiveMIcon
-                                key={ev.id}
-                                size={11}
-                                className="shrink-0 drop-shadow-2xs"
-                              />
-                            );
+                            return <FiveMIcon key={ev.id} size={11} className="shrink-0 drop-shadow-2xs" />;
                           }
                           if (ev.category === 'raffle_60m') {
-                            return (
-                              <SixtyMIcon
-                                key={ev.id}
-                                size={14}
-                                className="shrink-0 drop-shadow-2xs"
-                              />
-                            );
+                            return <SixtyMIcon key={ev.id} size={14} className="shrink-0 drop-shadow-2xs" />;
                           }
                           if (ev.category === 'niggunim') {
-                            return (
-                              <NiggunIcon
-                                key={ev.id}
-                                size={11}
-                                color={cat?.color || '#4f46e5'}
-                                className="shrink-0 drop-shadow-2xs"
-                              />
-                            );
+                            return <NiggunIcon key={ev.id} size={11} color={cat?.color || '#4f46e5'} className="shrink-0 drop-shadow-2xs" />;
                           }
                           if (ev.category === 'yomei_depagra') {
-                            return (
-                              <YomeiDepagraIcon
-                                key={ev.id}
-                                size={11}
-                                color={cat?.color || '#b45309'}
-                                className="shrink-0 drop-shadow-2xs"
-                              />
-                            );
+                            return <YomeiDepagraIcon key={ev.id} size={11} color={cat?.color || '#b45309'} className="shrink-0 drop-shadow-2xs" />;
                           }
                           if (ev.category === 'shabbos_mevorchim') {
-                            return (
-                              <ShabbosMevorchimIcon
-                                key={ev.id}
-                                size={11}
-                                color={cat?.color || '#6366f1'}
-                                className="shrink-0 drop-shadow-2xs"
-                              />
-                            );
+                            return <ShabbosMevorchimIcon key={ev.id} size={11} color={cat?.color || '#6366f1'} className="shrink-0 drop-shadow-2xs" />;
                           }
                           if (ev.category === 'meetings') {
-                            return (
-                              <MeetingIcon
-                                key={ev.id}
-                                size={13}
-                                className="shrink-0 drop-shadow-2xs"
-                              />
-                            );
+                            return <MeetingIcon key={ev.id} size={13} className="shrink-0 drop-shadow-2xs" />;
                           }
                           if (ev.category === 'rallies' && ev.isGlobal) {
-                            return (
-                              <GlobalRallyIcon
-                                key={ev.id}
-                                size={13}
-                                className="shrink-0 drop-shadow-2xs"
-                              />
-                            );
+                            return <GlobalRallyIcon key={ev.id} size={13} className="shrink-0 drop-shadow-2xs" />;
                           }
                           if (ev.category === 'cp') {
-                              return (
-                                <CpIcon
-                                  key={ev.id}
-                                  size={13}
-                                  className="shrink-0 drop-shadow-2xs"
-                                />
-                              );
-                            }
-                            if (ev.category === 'promotion_ceremony') {
-                              return (
-                                <PromotionCeremonyIcon
-                                  key={ev.id}
-                                  size={13}
-                                  className="shrink-0 drop-shadow-2xs"
-                                />
-                              );
-                            }
+                            return <CpIcon key={ev.id} size={13} className="shrink-0 drop-shadow-2xs" />;
+                          }
+                          if (ev.category === 'promotion_ceremony') {
+                            return <PromotionCeremonyIcon key={ev.id} size={13} className="shrink-0 drop-shadow-2xs" />;
+                          }
                           return (
                             <span
                               key={ev.id}
@@ -958,7 +891,6 @@ export const YearView: React.FC<YearViewProps> = ({
                       </div>
                     </div>
 
-                    {/* Bottom Indicator for Mobile */}
                     <div className="sm:hidden flex items-center justify-between mt-0.5">
                       {visibleEvents.length > 0 ? (
                         <span className="text-[8px] font-bold text-[#15265c]">
@@ -976,13 +908,12 @@ export const YearView: React.FC<YearViewProps> = ({
         ))}
       </div>
 
-      {/* Floating Bottom-Right Popup Card for Selected Date */}
+      {/* Floating Popup Card */}
       {selectedDayObj && (
         <div
           id="year-date-popup-card"
           className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40 w-[350px] sm:w-[430px] max-w-[calc(100vw-2rem)] max-h-[80vh] flex flex-col bg-[#dde8f6]/98 border-2 border-[#9ec1e8] shadow-2xl rounded-2xl overflow-hidden backdrop-blur-lg animate-in slide-in-from-bottom-4 duration-200"
         >
-          {/* Card Header with Close Button */}
           <div className="flex items-center justify-between gap-2 p-3 sm:p-3.5 bg-[#15265c] text-white border-b border-[#253b7a] shrink-0">
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -1012,7 +943,6 @@ export const YearView: React.FC<YearViewProps> = ({
             </button>
           </div>
 
-          {/* Card Content Area - Scrollable */}
           <div className="p-3 sm:p-4 overflow-y-auto max-h-[calc(80vh-65px)] space-y-3.5 text-[#15265c]">
             <DayDescriptionSection day={selectedDayObj} />
           </div>

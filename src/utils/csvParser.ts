@@ -166,7 +166,7 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
         events.push({
           id: `ev-${eventIdCounter++}`,
           category: 'chidon',
-          subCategory: 'KHK Program & Tests',
+          subCategory: 'KHK Tests',
           title: khk.text,
           shortTitle: khk.shortTitle,
           link: khk.link,
@@ -180,7 +180,7 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
         events.push({
           id: `ev-${eventIdCounter++}`,
           category: 'chidon',
-          subCategory: 'Shipments & Materials',
+          subCategory: 'Shipping and Orders',
           title: shipments.text,
           shortTitle: shipments.shortTitle,
           link: shipments.link,
@@ -208,7 +208,7 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
         events.push({
           id: `ev-${eventIdCounter++}`,
           category: 'chidon',
-          subCategory: 'Trips & Special Events',
+          subCategory: 'Trips & Events',
           title: trips1.text,
           shortTitle: trips1.shortTitle,
           link: trips1.link,
@@ -222,7 +222,7 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
         events.push({
           id: `ev-${eventIdCounter++}`,
           category: 'chidon',
-          subCategory: 'Trips & Special Events',
+          subCategory: 'Trips & Events',
           title: trips2.text,
           shortTitle: trips2.shortTitle,
           link: trips2.link,
@@ -236,7 +236,7 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
         events.push({
           id: `ev-${eventIdCounter++}`,
           category: 'chidon',
-          subCategory: 'Chidon Tests & Curriculum',
+          subCategory: 'Limmud & Tests',
           title: chidonCurriculum.text,
           shortTitle: chidonCurriculum.shortTitle,
           link: chidonCurriculum.link,
@@ -244,7 +244,35 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
           rawText: chidonCurriculum.text,
         });
       }
+// 1b. Chidon Limmud Schedule (Columns AU to AY -> Indices 46 to 50)
+      const limmudBooks = [
+        { index: 46, bookNum: 1 }, // AU
+        { index: 47, bookNum: 2 }, // AV
+        { index: 48, bookNum: 3 }, // AW
+        { index: 49, bookNum: 4 }, // AX
+        { index: 50, bookNum: 5 }, // AY
+      ];
 
+      limmudBooks.forEach(({ index, bookNum }) => {
+        const bookData = getColData(row, subRows, index);
+        if (bookData.text) {
+          events.push({
+            id: `ev-${eventIdCounter++}`,
+            category: 'chidon',
+            subCategory: 'Limmud Schedule',
+            title: `Book ${bookNum}: ${bookData.text}`,
+            shortTitle: bookData.shortTitle,
+            link: bookData.link,
+            buttonText: bookData.buttonText,
+            rawText: bookData.text,
+            bookNumber: bookNum,
+            rangeValue: bookData.text,
+            hideFromGrid: true, // Hidden from Month & Year grids
+            hideFromList: true, // Hidden from Table & Agenda lists
+          });
+        }
+      });
+      
       // 2. Hachayol & Battlefront Report
       const hachayol = getColData(row, subRows, 12);
       if (hachayol.text) {
@@ -278,7 +306,7 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
           events.push({
             id: `ev-${eventIdCounter++}`,
             category: 'hachayol_battlefront',
-            subCategory: 'Hachayol Issue',
+            subCategory: 'Hachayol Magazines',
             title: `Hachayol Issue #${issue}`,
             shortTitle: itemShortTitle,
             link: itemLink,
@@ -337,7 +365,7 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
         events.push({
           id: `ev-${eventIdCounter++}`,
           category: 'rallies',
-          subCategory: isGlobal ? 'Global Rally' : 'Rally',
+          subCategory: isGlobal ? 'Global Rallies' : 'Rallies',
           title: isGlobal ? `Global Rally: ${rally.text}` : `Rally: ${rally.text}`,
           shortTitle: rally.shortTitle,
           link: rally.link,
@@ -353,7 +381,7 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
         events.push({
           id: `ev-${eventIdCounter++}`,
           category: 'meetings',
-          subCategory: 'Base Commander Meeting',
+          subCategory: 'BC Meetings',
           title: `Base Commander Meeting (${bcMeeting.text} EST)`,
           shortTitle: bcMeeting.shortTitle,
           link: bcMeeting.link,
@@ -369,7 +397,7 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
           id: `ev-${eventIdCounter++}`,
           category: 'meetings',
           categories: ['meetings', 'chidon'],
-          subCategory: 'Chidon Coordinator Meeting',
+          subCategory: 'CC Meetings',
           title: `Chidon Coordinator Meeting (${ccMeeting.text} EST)`,
           shortTitle: ccMeeting.shortTitle,
           link: ccMeeting.link,
@@ -385,7 +413,7 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
         events.push({
           id: `ev-${eventIdCounter++}`,
           category: 'promotion_ceremony',
-          subCategory: 'Promotion Ceremony',
+          subCategory: 'Promotion Ceremonies',
           title: promo.text,
           shortTitle: promo.shortTitle,
           link: promo.link,
@@ -581,6 +609,35 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
           link: cpJunior.link,
           buttonText: cpJunior.buttonText,
           rawText: cpJunior.text,
+        });
+      }
+
+// 12. Contests & Sales
+      const contestVal = getColData(row, subRows, 43); // Column AR
+      if (contestVal.text) {
+        events.push({
+          id: `ev-${eventIdCounter++}`,
+          category: 'contests_sales',
+          subCategory: 'Contests',
+          title: contestVal.text,
+          shortTitle: contestVal.shortTitle,
+          link: contestVal.link,
+          buttonText: contestVal.buttonText,
+          rawText: contestVal.text,
+        });
+      }
+
+      const salesVal = getColData(row, subRows, 44); // Column AS
+      if (salesVal.text) {
+        events.push({
+          id: `ev-${eventIdCounter++}`,
+          category: 'contests_sales',
+          subCategory: 'Sales',
+          title: salesVal.text,
+          shortTitle: salesVal.shortTitle,
+          link: salesVal.link,
+          buttonText: salesVal.buttonText,
+          rawText: salesVal.text,
         });
       }
 

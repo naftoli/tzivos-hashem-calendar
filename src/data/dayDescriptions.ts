@@ -1,5 +1,6 @@
 export interface DayRoutineItem {
   text: string;
+  subCategory?: string;
   action?: {
     label: string;
     url: string;
@@ -21,6 +22,7 @@ export const DAY_ROUTINES: Record<string, DayRoutine> = {
     items: [
       {
         text: 'Receive the Niggun & Sicha for the Week',
+        subCategory: 'Niggun of the Week',
       },
     ],
   },
@@ -59,9 +61,11 @@ export const DAY_ROUTINES: Record<string, DayRoutine> = {
     items: [
       {
         text: 'Data Entry Due Date',
+        subCategory: 'Shabbos Mevorchim Data Due',
       },
       {
         text: 'Send out a Whatsapp PSA for the 5M Raffle.',
+        subCategory: '5M Raffle Mission Start',
       },
     ],
   },
@@ -72,13 +76,15 @@ export const DAY_ROUTINES: Record<string, DayRoutine> = {
     items: [
       {
         text: 'Weekly Raffle Winners Announced',
+        subCategory: '5M Winners Announced',
       },
       {
-        text: 'Print and Hang Customized 5M Winners Report',
+        text: 'Print and Hang 5M Winners Report',
         action: {
-          label: 'Print and Hang Customized 5M Winners Report',
+          label: 'Report',
           url: 'https://mashpia.com/raffles/posters/weekly.php',
         },
+        subCategory: '5M Winners Announced',
       },
     ],
   },
@@ -92,12 +98,38 @@ export const DAY_ROUTINES: Record<string, DayRoutine> = {
       },
       {
         text: 'Hand out Missions and Hachayol',
+        subCategory: 'Hachayol Magazines',
       },
     ],
   },
 };
 
-export function getDayRoutine(dayOfWeek: string): DayRoutine | undefined {
+export function getDayRoutine(
+  dayOfWeek: string,
+  selectedSubCategories?: Record<string, boolean>
+): DayRoutine | undefined {
   if (dayOfWeek === 'Shabbos') return undefined;
-  return DAY_ROUTINES[dayOfWeek] || undefined;
+
+  const routine = DAY_ROUTINES[dayOfWeek];
+  if (!routine) return undefined;
+
+  // Filter task items against active subcategory toggle state
+  if (selectedSubCategories) {
+    const filteredItems = routine.items.filter((item) => {
+      // If task belongs to a subcategory that is explicitly set to false, hide it
+      if (item.subCategory && selectedSubCategories[item.subCategory] === false) {
+        return false;
+      }
+      return true;
+    });
+
+    if (filteredItems.length === 0) return undefined;
+
+    return {
+      ...routine,
+      items: filteredItems,
+    };
+  }
+
+  return routine;
 }

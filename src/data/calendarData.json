@@ -5767,7 +5767,7 @@
       {
         "id": "ev-91",
         "category": "chidon",
-        "subCategory": "KHK Program & Tests",
+        "subCategory": "KHK Tests",
         "title": "KHK Test 1",
         "rawText": "KHK Test 1"
       },
@@ -6319,7 +6319,7 @@
       {
         "id": "ev-104",
         "category": "chidon",
-        "subCategory": "KHK Program & Tests",
+        "subCategory": "KHK Tests",
         "title": "KHK Test 1 Marks Due",
         "rawText": "KHK Test 1 Marks Due"
       }
@@ -8012,7 +8012,7 @@
       {
         "id": "ev-136",
         "category": "chidon",
-        "subCategory": "KHK Program & Tests",
+        "subCategory": "KHK Tests",
         "title": "KHK Test 2",
         "rawText": "KHK Test 2"
       },
@@ -8459,7 +8459,7 @@
       {
         "id": "ev-145",
         "category": "chidon",
-        "subCategory": "KHK Program & Tests",
+        "subCategory": "KHK Tests",
         "title": "KHK Test 2 Marks Due",
         "rawText": "KHK Test 2 Marks Due"
       },
@@ -11282,7 +11282,7 @@
       {
         "id": "ev-214",
         "category": "chidon",
-        "subCategory": "KHK Program & Tests",
+        "subCategory": "KHK Tests",
         "title": "KHK Test 3",
         "rawText": "KHK Test 3"
       },
@@ -11657,7 +11657,7 @@
       {
         "id": "ev-222",
         "category": "chidon",
-        "subCategory": "KHK Program & Tests",
+        "subCategory": "KHK Tests",
         "title": "KHK Test 3 Marks Due",
         "rawText": "KHK Test 3 Marks Due"
       },
@@ -13866,7 +13866,7 @@
       {
         "id": "ev-262",
         "category": "chidon",
-        "subCategory": "KHK Program & Tests",
+        "subCategory": "KHK Tests",
         "title": "KHK Test 4",
         "rawText": "KHK Test 4"
       },
@@ -14178,7 +14178,7 @@
       {
         "id": "ev-270",
         "category": "chidon",
-        "subCategory": "KHK Program & Tests",
+        "subCategory": "KHK Tests",
         "title": "KHK Test 4 Marks Due",
         "rawText": "KHK Test 4 Marks Due"
       },
@@ -16276,7 +16276,7 @@
       {
         "id": "ev-312",
         "category": "chidon",
-        "subCategory": "KHK Program & Tests",
+        "subCategory": "KHK Tests",
         "title": "KHK Online Final",
         "rawText": "KHK Online Final"
       },
@@ -17417,7 +17417,7 @@
       {
         "id": "ev-329",
         "category": "chidon",
-        "subCategory": "KHK Program & Tests",
+        "subCategory": "KHK Tests",
         "title": "Girls KHK Program starts",
         "rawText": "Girls KHK Program starts"
       }
@@ -17751,7 +17751,7 @@
       {
         "id": "ev-340",
         "category": "chidon",
-        "subCategory": "KHK Program & Tests",
+        "subCategory": "KHK Tests",
         "title": "Girls KHK Program Ends",
         "rawText": "Girls KHK Program Ends"
       },
@@ -17963,7 +17963,7 @@
       {
         "id": "ev-343",
         "category": "chidon",
-        "subCategory": "KHK Program & Tests",
+        "subCategory": "KHK Tests",
         "title": "Boys KHK Program starts",
         "rawText": "Boys KHK Program starts"
       },
@@ -18296,7 +18296,7 @@
       {
         "id": "ev-354",
         "category": "chidon",
-        "subCategory": "KHK Program & Tests",
+        "subCategory": "KHK Tests",
         "title": "Boys KHK Program ends",
         "rawText": "Boys KHK Program ends"
       },

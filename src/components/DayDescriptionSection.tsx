@@ -7,8 +7,8 @@ import {
   Globe,
   ArrowUpRight,
 } from 'lucide-react';
-import { CalendarDay } from '../types';
-import { CATEGORIES, isCCMeeting } from '../data/categories';
+import { CalendarDay, CalendarCategory } from '../types';
+import { CATEGORIES, isCCMeeting, isEventVisibleByCategories } from '../data/categories';
 import { getDayRoutine } from '../data/dayDescriptions';
 import { getGoogleCalendarUrl } from '../utils/exporter';
 import { ChidonIcon } from './ChidonIcon';
@@ -22,12 +22,20 @@ import { GlobalRallyIcon } from './GlobalRallyIcon';
 import { MeetingIcon } from './MeetingIcon';
 import { CpIcon } from './CpIcon';
 import { PromotionCeremonyIcon } from './PromotionCeremonyIcon';
+import { ChidonLimmudSchedule } from './ChidonLimmudSchedule';
 
 interface DayDescriptionSectionProps {
   day: CalendarDay;
+  selectedCategories?: Record<CalendarCategory, boolean>;
+  selectedSubCategories?: Record<string, boolean>;
 }
 
-export const DayDescriptionSection: React.FC<DayDescriptionSectionProps> = ({ day }) => {
+export const DayDescriptionSection: React.FC<DayDescriptionSectionProps> = ({
+  day,
+  selectedCategories,
+  selectedSubCategories,
+}) => {
+  // Always fetch full day routine tasks — tasks do NOT disappear when subcategories are filtered
   const routine = getDayRoutine(day.dayOfWeek);
 
   const isHachayolIssue = (ev: CalendarDay['events'][0]): boolean => {
@@ -47,7 +55,14 @@ export const DayDescriptionSection: React.FC<DayDescriptionSectionProps> = ({ da
   const renderItems: EventRenderItem[] = [];
   let currentHachayolBatch: CalendarDay['events'] = [];
 
-  for (const ev of day.events || []) {
+  // 1. Filter day events using active category & subcategory/book filters
+  const visibleEvents = (day.events || []).filter((ev) =>
+    selectedCategories
+      ? isEventVisibleByCategories(ev, selectedCategories, selectedSubCategories)
+      : true
+  );
+
+  for (const ev of visibleEvents) {
     if (isHachayolIssue(ev)) {
       currentHachayolBatch.push(ev);
     } else {
@@ -96,76 +111,31 @@ export const DayDescriptionSection: React.FC<DayDescriptionSectionProps> = ({ da
                 >
                   {isCC ? (
                     <>
-                      <MeetingIcon
-                        size={15}
-                        className="shrink-0"
-                      />
-                      <ChidonIcon
-                        size={12}
-                        color="#d97706"
-                        className="shrink-0"
-                      />
+                      <MeetingIcon size={15} className="shrink-0" />
+                      <ChidonIcon size={12} color="#b48a18" className="shrink-0" />
                     </>
                   ) : ev.category === 'chidon' ? (
-                    <ChidonIcon
-                      size={12}
-                      color={cat?.color || '#d97706'}
-                      className="shrink-0"
-                    />
+                    <ChidonIcon size={12} color={cat?.color || '#d97706'} className="shrink-0" />
                   ) : ev.category === 'hachayol_battlefront' ? (
-                    <HachayolIcon
-                      size={14}
-                      color={cat?.color || '#0f766e'}
-                      className="shrink-0"
-                    />
+                    <HachayolIcon size={14} color={cat?.color || '#0f766e'} className="shrink-0" />
                   ) : ev.category === 'raffle_5m' ? (
-                    <FiveMIcon
-                      size={13}
-                      className="shrink-0"
-                    />
+                    <FiveMIcon size={13} className="shrink-0" />
                   ) : ev.category === 'raffle_60m' ? (
-                    <SixtyMIcon
-                      size={19}
-                      className="shrink-0"
-                    />
+                    <SixtyMIcon size={19} className="shrink-0" />
                   ) : ev.category === 'niggunim' ? (
-                    <NiggunIcon
-                      size={14}
-                      color={cat?.color || '#4f46e5'}
-                      className="shrink-0"
-                    />
+                    <NiggunIcon size={14} color={cat?.color || '#4f46e5'} className="shrink-0" />
                   ) : ev.category === 'yomei_depagra' ? (
-                    <YomeiDepagraIcon
-                      size={14}
-                      color={cat?.color || '#b45309'}
-                      className="shrink-0"
-                    />
+                    <YomeiDepagraIcon size={14} color={cat?.color || '#b45309'} className="shrink-0" />
                   ) : ev.category === 'shabbos_mevorchim' ? (
-                    <ShabbosMevorchimIcon
-                      size={14}
-                      color={cat?.color || '#6366f1'}
-                      className="shrink-0"
-                    />
+                    <ShabbosMevorchimIcon size={14} color={cat?.color || '#6366f1'} className="shrink-0" />
                   ) : ev.category === 'meetings' ? (
-                    <MeetingIcon
-                      size={16}
-                      className="shrink-0"
-                    />
+                    <MeetingIcon size={16} className="shrink-0" />
                   ) : ev.category === 'rallies' && ev.isGlobal ? (
-                    <GlobalRallyIcon
-                      size={16}
-                      className="shrink-0"
-                    />
+                    <GlobalRallyIcon size={16} className="shrink-0" />
                   ) : ev.category === 'cp' ? (
-                      <CpIcon
-                        size={16}
-                        className="shrink-0"
-                      />
-                      ) : ev.category === 'promotion_ceremony' ? (
-                      <PromotionCeremonyIcon
-                        size={16}
-                        className="shrink-0 -mx-[3px]"
-                      />
+                    <CpIcon size={16} className="shrink-0" />
+                  ) : ev.category === 'promotion_ceremony' ? (
+                    <PromotionCeremonyIcon size={16} className="shrink-0 -mx-[3px]" />
                   ) : (
                     <span
                       className="w-1.5 h-1.5 rounded-full"
@@ -175,19 +145,13 @@ export const DayDescriptionSection: React.FC<DayDescriptionSectionProps> = ({ da
                   <span>
                     {isCC
                       ? 'Meetings & Chidon'
-                      : (ev.subCategory && cat?.name && ev.subCategory.toLowerCase().trim() !== cat.name.toLowerCase().trim()
-                        ? `${cat.name} • ${ev.subCategory}`
-                        : cat?.name || ev.category)}
+                      : ev.subCategory && cat?.name && ev.subCategory.toLowerCase().trim() !== cat.name.toLowerCase().trim()
+                      ? `${cat.name} • ${ev.subCategory}`
+                      : cat?.name || ev.category}
                   </span>
                 </span>
               );
             })()}
-
-            {ev.isGlobal && (
-              <span className="text-[10px] font-bold text-rose-800 bg-rose-100 px-1.5 py-0.2 rounded border border-rose-200 flex items-center gap-0.5">
-                <Globe className="w-2.5 h-2.5" /> Global
-              </span>
-            )}
           </div>
 
           <h5 className={`text-xs sm:text-[13px] font-bold ${cat?.textColor || 'text-slate-900'} leading-snug`}>
@@ -235,7 +199,15 @@ export const DayDescriptionSection: React.FC<DayDescriptionSectionProps> = ({ da
 
   return (
     <div className="space-y-3">
-      {/* Daily Tasks Section (Excluded for Shabbos) */}
+      {/* Side-by-side Limmud Schedule Module (Toggles via 'Limmud Schedule' Subcategory Filter) */}
+      <ChidonLimmudSchedule
+        events={day.events || []}
+        selectedCategories={selectedCategories}
+        selectedSubCategories={selectedSubCategories}
+        variant="dayDescription"
+      />
+
+      {/* Daily Tasks Section (Tasks remain permanently visible) */}
       {routine && (
         <div className="bg-[#cde0f7] border border-[#9ec1e8] rounded-xl p-3 sm:p-3.5 space-y-2.5">
           <div className="flex items-center justify-between gap-2 border-b border-[#9ec1e8] pb-2">
@@ -252,7 +224,6 @@ export const DayDescriptionSection: React.FC<DayDescriptionSectionProps> = ({ da
             </span>
           </div>
 
-          {/* Task items & interactive buttons */}
           <div className="space-y-2 text-xs">
             {routine.items.map((item, idx) => (
               <div
@@ -288,12 +259,12 @@ export const DayDescriptionSection: React.FC<DayDescriptionSectionProps> = ({ da
       )}
 
       {/* Scheduled Events for this Day */}
-      {day.events && day.events.length > 0 ? (
+      {renderItems.length > 0 ? (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-xs text-[#15265c] font-bold px-0.5">
             <span className="flex items-center gap-1.5">
               <CalendarIcon className="w-3.5 h-3.5 text-amber-600" />
-              <span>Events & Milestones ({day.events.length})</span>
+              <span>Events & Milestones ({visibleEvents.length})</span>
             </span>
           </div>
 
@@ -320,7 +291,11 @@ export const DayDescriptionSection: React.FC<DayDescriptionSectionProps> = ({ da
                     return (
                       <div
                         key={ev.id || evIdx}
-                        className={isLastAndOdd ? 'min-[450px]:col-span-2 sm:col-span-2' : 'min-[450px]:col-span-1 sm:col-span-1'}
+                        className={
+                          isLastAndOdd
+                            ? 'min-[450px]:col-span-2 sm:col-span-2'
+                            : 'min-[450px]:col-span-1 sm:col-span-1'
+                        }
                       >
                         {renderEventCard(ev)}
                       </div>
@@ -331,7 +306,7 @@ export const DayDescriptionSection: React.FC<DayDescriptionSectionProps> = ({ da
             })}
           </div>
         </div>
-      ) : !routine ? (
+      ) : !routine && (!visibleEvents || !visibleEvents.some((e) => e.subCategory === 'Limmud Schedule')) ? (
         <div className="text-center py-3 text-xs text-slate-600 italic">
           No special events or deadlines scheduled for this date.
         </div>

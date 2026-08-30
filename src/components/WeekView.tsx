@@ -8,10 +8,12 @@ import {
   Calendar as CalendarIcon,
   Sparkles,
   ArrowUpRight,
+  ListTodo,
 } from 'lucide-react';
 import { CalendarDay, CalendarCategory, CalendarEvent, CalendarSystem } from '../types';
 import { CATEGORIES, isCCMeeting, isEventVisibleByCategories } from '../data/categories';
 import { getGoogleCalendarUrl } from '../utils/exporter';
+import { getDayRoutine } from '../data/dayDescriptions';
 import { ChidonIcon } from './ChidonIcon';
 import { HachayolIcon } from './HachayolIcon';
 import { FiveMIcon } from './FiveMIcon';
@@ -24,13 +26,16 @@ import { MeetingIcon } from './MeetingIcon';
 import { TorahIcon } from './TorahIcon';
 import { CpIcon } from './CpIcon';
 import { PromotionCeremonyIcon } from './PromotionCeremonyIcon';
+import { ChidonLimmudSchedule } from './ChidonLimmudSchedule';
 
 interface WeekViewProps {
   days: CalendarDay[];
   calendarSystem: CalendarSystem;
   selectedCategories: Record<CalendarCategory, boolean>;
+  selectedSubCategories?: Record<string, boolean>;
   searchQuery: string;
   showParsha: boolean;
+  showRoutines?: boolean;
   onSelectDay: (day: CalendarDay) => void;
   todayIso: string;
 }
@@ -49,8 +54,10 @@ export const WeekView: React.FC<WeekViewProps> = ({
   days,
   calendarSystem,
   selectedCategories,
+  selectedSubCategories,
   searchQuery,
   showParsha,
+  showRoutines = true,
   onSelectDay,
   todayIso,
 }) => {
@@ -102,11 +109,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
   const filterEvents = (events: CalendarEvent[], day: CalendarDay) => {
     const query = searchQuery.trim().toLowerCase();
     return events.filter((ev) => {
-      if (!isEventVisibleByCategories(ev, selectedCategories)) return false;
+      if (!isEventVisibleByCategories(ev, selectedCategories, selectedSubCategories)) return false;
       if (!query) return true;
       return (
         ev.title.toLowerCase().includes(query) ||
-        ev.subCategory.toLowerCase().includes(query) ||
+        (ev.subCategory && ev.subCategory.toLowerCase().includes(query)) ||
         day.hebrewDate.toLowerCase().includes(query) ||
         (day.hebrewMonth && day.hebrewMonth.toLowerCase().includes(query)) ||
         (day.hebrewMonthEn && day.hebrewMonthEn.toLowerCase().includes(query)) ||
@@ -218,10 +225,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
       {/* 7 Day Columns Grid - Light Blue Cards */}
       <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
         {activeWeek.map((day) => {
-          const visibleEvents = filterEvents(day.events, day);
+          const visibleEvents = filterEvents(day.events || [], day);
           const isToday = day.isoDate === todayIso;
           const isShabbos = day.dayOfWeek === 'Shabbos';
           const isYomeiDepagra = day.events.some((e) => e.category === 'yomei_depagra');
+          const routine = showRoutines ? getDayRoutine(day.dayOfWeek, selectedSubCategories) : undefined;
 
           return (
             <div
@@ -286,6 +294,48 @@ export const WeekView: React.FC<WeekViewProps> = ({
                   )}
                 </div>
 
+                {/* 1. Limmud Schedule Module */}
+                <ChidonLimmudSchedule
+                  events={day.events || []}
+                  selectedCategories={selectedCategories}
+                  selectedSubCategories={selectedSubCategories}
+                  variant="weekView"
+                />
+
+                {/* 2. Routine Tasks Cards (Renders below Limmud Schedule) */}
+                {routine && routine.items.length > 0 && (
+                  <div className="space-y-1.5 my-2">
+                    {routine.items.map((item, idx) => (
+                      <div
+                        key={`week-routine-${idx}`}
+                        className="bg-[#cde0f7] border border-[#9ec1e8] rounded-xl p-2.5 space-y-1.5 shadow-2xs text-xs"
+                      >
+                        <div className="flex items-center gap-1.5 font-bold text-[#15265c] text-[11px]">
+                          <ListTodo className="w-3 h-3 text-amber-700 shrink-0" />
+                          <span>Daily Task</span>
+                        </div>
+                        <div className="text-[11.5px] font-medium text-slate-800 leading-snug">
+                          {item.text}
+                        </div>
+                        {item.action && (
+                          <div className="pt-1 border-t border-[#9ec1e8]/50 flex justify-end">
+                            <a
+                              href={item.action.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#15265c] hover:bg-[#1e3a8a] text-white text-[9.5px] font-semibold transition-all shadow-2xs"
+                            >
+                              <span>{item.action.label}</span>
+                              <ArrowUpRight className="w-2.5 h-2.5 text-amber-300 shrink-0" />
+                            </a>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* Events list in column */}
                 <div className="space-y-1.5">
                   {visibleEvents.map((ev) => {
@@ -311,14 +361,14 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 />
                                 <ChidonIcon
                                   size={12}
-                                  color={cat?.color || '#d97706'}
+                                  color="#b48a18"
                                   className="shrink-0"
                                 />
                               </div>
                             ) : ev.category === 'chidon' ? (
                               <ChidonIcon
                                 size={12}
-                                color={cat?.color || '#d97706'}
+                                color="#b48a18"
                                 className="shrink-0"
                               />
                             ) : ev.category === 'hachayol_battlefront' ? (
@@ -365,12 +415,12 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 size={16}
                                 className="shrink-0"
                               />
-                              ) : ev.category === 'cp' ? (
+                            ) : ev.category === 'cp' ? (
                               <CpIcon
                                 size={16}
                                 className="shrink-0 -mx"
                               />
-                              ) : ev.category === 'promotion_ceremony' ? (
+                            ) : ev.category === 'promotion_ceremony' ? (
                               <PromotionCeremonyIcon
                                 size={16}
                                 className="shrink-0 -mx"
@@ -381,7 +431,6 @@ export const WeekView: React.FC<WeekViewProps> = ({
                                 style={{ backgroundColor: cat?.color || '#555' }}
                               />
                             )}
-                          
                           </div>
                           <div className={`text-xs font-bold ${cat?.textColor || 'text-slate-900'} leading-tight mt-0.5`}>
                             {ev.title}
@@ -424,7 +473,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
                     );
                   })}
 
-                  {visibleEvents.length === 0 && (
+                  {visibleEvents.length === 0 && (!routine || routine.items.length === 0) && (
                     <div className="py-4 text-center text-xs text-slate-400 italic">
                       No events
                     </div>
