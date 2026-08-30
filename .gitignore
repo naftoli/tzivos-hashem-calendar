@@ -1,0 +1,11 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+.cursor/
+# Windows download markers that came along with the source files
+*:Zone.Identifier

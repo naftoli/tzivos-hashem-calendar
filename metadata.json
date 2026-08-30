@@ -1,0 +1,6 @@
+{
+  "name": "Tzivos Hashem Interactive Calendar",
+  "description": "Interactive calendar and CSV/iCal exporter for Tzivos Hashem 5787 schedule, featuring category filtering, multiple views, and exact spreadsheet data alignment.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
