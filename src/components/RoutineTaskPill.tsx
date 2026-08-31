@@ -14,7 +14,7 @@ export const RoutineTaskPill: React.FC<Props> = ({ item, variant = 'grid' }) => 
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 font-bold text-[#15265c] text-[11px]">
             <ListTodo className="w-3 h-3 text-amber-700 shrink-0" />
-            <span>Daily Task</span>
+            <span>Weekly Task</span>
           </div>
 
           {item.action && (

@@ -27,6 +27,7 @@ import { TorahIcon } from './TorahIcon';
 import { CpIcon } from './CpIcon';
 import { PromotionCeremonyIcon } from './PromotionCeremonyIcon';
 import { ChidonLimmudSchedule } from './ChidonLimmudSchedule';
+import { RoutineTaskPill } from './RoutineTaskPill';
 
 interface WeekViewProps {
   days: CalendarDay[];
@@ -100,8 +101,12 @@ export const WeekView: React.FC<WeekViewProps> = ({
   const startDay = activeWeek[0];
   const endDay = activeWeek[activeWeek.length - 1];
 
-  // Find the primary Parsha for this week (usually on the Shabbos of the week or first non-empty)
-  const weekParsha = activeWeek.find((d) => d.dayOfWeek === 'Shabbos')?.parsha || activeWeek.find((d) => d.parsha)?.parsha;
+  // Find the primary Parsha and weekly resources link for this week
+  const shabbosDay = activeWeek.find((d) => d.dayOfWeek === 'Shabbos');
+  const weekParsha = shabbosDay?.parsha || activeWeek.find((d) => d.parsha)?.parsha;
+  const hidePrefix = activeWeek.some((d) => d.hideParshaPrefix);
+  const parshaLabel = weekParsha ? (hidePrefix ? weekParsha : `פרשת ${weekParsha}`) : '';
+  const weeklyResourceUrl = shabbosDay?.weeklyResourcesUrl;
 
   const canGoPrev = currentWeekIndex > 0;
   const canGoNext = currentWeekIndex < weeks.length - 1;
@@ -183,9 +188,7 @@ export const WeekView: React.FC<WeekViewProps> = ({
               {weekParsha && showParsha && (
                 <span className="text-xs sm:text-sm font-bold font-hebrew text-[#15265c] bg-[#c3d9f3] px-2.5 py-0.5 rounded-lg border border-[#a4c4ea] inline-flex items-center gap-1.5 shadow-2xs">
                   <TorahIcon className="w-3.5 h-3.5 text-[#15265c] shrink-0" />
-                  <span>
-                    {activeWeek.some((d) => d.hideParshaPrefix) ? weekParsha : `פרשת ${weekParsha}`}
-                  </span>
+                  <span>{parshaLabel}</span>
                 </span>
               )}
             </div>
@@ -208,19 +211,50 @@ export const WeekView: React.FC<WeekViewProps> = ({
           >
             {weeks.map((w, idx) => {
               const parshaName = w.find(d => d.parsha)?.parsha || '';
-              const hidePrefix = w.some(d => d.hideParshaPrefix);
+              const hidePref = w.some(d => d.hideParshaPrefix);
               const firstDay = w[0];
               const lastDay = w[w.length - 1];
               const containsToday = w.some(d => d.isoDate === todayIso);
               return (
                 <option key={idx} value={idx} className="bg-[#dde8f6] text-[#15265c]">
-                  {containsToday ? '★ ' : ''}Week {idx + 1}: {isHebrew ? `${firstDay?.hebrewDate} - ${lastDay?.hebrewDate}` : `${firstDay?.englishDate} - ${lastDay?.englishDate}`} {parshaName ? `(${!hidePrefix ? 'פרשת ' : ''}${parshaName})` : ''} {containsToday ? '(Current Week)' : ''}
+                  {containsToday ? '★ ' : ''}Week {idx + 1}: {isHebrew ? `${firstDay?.hebrewDate} - ${lastDay?.hebrewDate}` : `${firstDay?.englishDate} - ${lastDay?.englishDate}`} {parshaName ? `(${!hidePref ? 'פרשת ' : ''}${parshaName})` : ''} {containsToday ? '(Current Week)' : ''}
                 </option>
               );
             })}
           </select>
         </div>
       </div>
+
+      {/* Dedicated Weekly Resources Banner */}
+      {weeklyResourceUrl && (
+        <div className="bg-[#15265c] border border-amber-400/40 rounded-2xl p-3 sm:px-4 sm:py-2.5 shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 transition-all">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center shrink-0">
+              <TorahIcon className="w-4 h-4 text-amber-300" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-xs sm:text-sm font-bold font-hebrew text-amber-300 truncate">
+                {parshaLabel} • Weekly Resources
+              </div>
+              <p className="text-[11px] text-blue-200 truncate hidden sm:block">
+                Access Hachayol and other Resources
+              </p>
+            </div>
+          </div>
+
+          <a
+            href={weeklyResourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-[#15265c] text-xs font-bold font-hebrew transition-all shadow-2xs shrink-0 cursor-pointer active:scale-[0.98]"
+            title={`Open ${parshaLabel} Resources`}
+          >
+            <span>Open {parshaLabel} Resources</span>
+            <ArrowUpRight className="w-3.5 h-3.5 shrink-0" />
+          </a>
+        </div>
+      )}
 
       {/* 7 Day Columns Grid - Light Blue Cards */}
       <div className="grid grid-cols-1 md:grid-cols-7 gap-3">
@@ -302,36 +336,11 @@ export const WeekView: React.FC<WeekViewProps> = ({
                   variant="weekView"
                 />
 
-                {/* 2. Routine Tasks Cards (Renders below Limmud Schedule) */}
+                {/* 2. Routine Tasks Cards */}
                 {routine && routine.items.length > 0 && (
-                  <div className="space-y-1.5 my-2">
+                  <div className="space-y-1 my-1">
                     {routine.items.map((item, idx) => (
-                      <div
-                        key={`week-routine-${idx}`}
-                        className="bg-[#cde0f7] border border-[#9ec1e8] rounded-xl p-2.5 space-y-1.5 shadow-2xs text-xs"
-                      >
-                        <div className="flex items-center gap-1.5 font-bold text-[#15265c] text-[11px]">
-                          <ListTodo className="w-3 h-3 text-amber-700 shrink-0" />
-                          <span>Daily Task</span>
-                        </div>
-                        <div className="text-[11.5px] font-medium text-slate-800 leading-snug">
-                          {item.text}
-                        </div>
-                        {item.action && (
-                          <div className="pt-1 border-t border-[#9ec1e8]/50 flex justify-end">
-                            <a
-                              href={item.action.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-[#15265c] hover:bg-[#1e3a8a] text-white text-[9.5px] font-semibold transition-all shadow-2xs"
-                            >
-                              <span>{item.action.label}</span>
-                              <ArrowUpRight className="w-2.5 h-2.5 text-amber-300 shrink-0" />
-                            </a>
-                          </div>
-                        )}
-                      </div>
+                      <RoutineTaskPill key={idx} item={item} variant="week" />
                     ))}
                   </div>
                 )}
