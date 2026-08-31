@@ -117,6 +117,8 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
       const hebrewDate = (row[1] || '').trim();
       const englishDateStr = (row[2] || '').trim();
       const parsha = (row[3] || '').trim();
+      const parshaData = getColData(row, subRows, 3);
+      const weeklyResourcesUrl = parshaData.link;
 
       // Check if sub-rows under column D (index 3) specify "YT"
       const hasYT = subRows.some((sr) => (sr[3] || '').trim().toUpperCase() === 'YT');
@@ -244,7 +246,8 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
           rawText: chidonCurriculum.text,
         });
       }
-// 1b. Chidon Limmud Schedule (Columns AU to AY -> Indices 46 to 50)
+
+      // 1b. Chidon Limmud Schedule (Columns AU to AY -> Indices 46 to 50)
       const limmudBooks = [
         { index: 46, bookNum: 1 }, // AU
         { index: 47, bookNum: 2 }, // AV
@@ -272,7 +275,7 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
           });
         }
       });
-      
+
       // 2. Hachayol & Battlefront Report
       const hachayol = getColData(row, subRows, 12);
       if (hachayol.text) {
@@ -612,7 +615,7 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
         });
       }
 
-// 12. Contests & Sales
+      // 12. Contests & Sales
       const contestVal = getColData(row, subRows, 43); // Column AR
       if (contestVal.text) {
         events.push({
@@ -659,24 +662,24 @@ export function parseCSVToCalendarDays(csvText: string): { success: boolean; dat
         englishDate: englishDateStr,
         parsha,
         hideParshaPrefix: hasYT ? true : undefined,
+        weeklyResourcesUrl,
         rawRow: row,
         events,
       });
     }
 
-    // Propagate hideParshaPrefix across the week:
-    // If Shabbos of a week (or any day in that week) has YT under column D (parsha),
-    // mark all days in that week with hideParshaPrefix = true.
+    // Propagate hideParshaPrefix & weeklyResourcesUrl across the week
     let currentWeek: CalendarDay[] = [];
     for (let i = 0; i < calendarDays.length; i++) {
       const d = calendarDays[i];
       currentWeek.push(d);
       if (d.dayOfWeek === 'Shabbos' || i === calendarDays.length - 1) {
         const weekHasYT = currentWeek.some((day) => day.hideParshaPrefix);
-        if (weekHasYT) {
-          for (const day of currentWeek) {
-            day.hideParshaPrefix = true;
-          }
+        const weekResourceUrl = currentWeek.find((day) => day.weeklyResourcesUrl)?.weeklyResourcesUrl;
+
+        for (const day of currentWeek) {
+          if (weekHasYT) day.hideParshaPrefix = true;
+          if (weekResourceUrl) day.weeklyResourcesUrl = weekResourceUrl;
         }
         currentWeek = [];
       }
